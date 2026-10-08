@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>新人業務考題抽選器</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* 只使用 tokens.css 的變數，不自訂新色 */
+  .page{max-width:640px;margin:0 auto;padding:var(--sp-6) var(--sp-4) var(--sp-8);min-height:100vh;display:flex;flex-direction:column;gap:var(--sp-4)}
+  h1{font-size:24px;font-weight:700;letter-spacing:.02em;text-align:center;padding:var(--sp-4) 0 var(--sp-2)}
+  .count{text-align:center;color:var(--ink-2);font-size:15px}
+  .count b{font-family:var(--mono);color:var(--ink);font-size:20px}
+
+  .card{padding:var(--sp-6);min-height:220px;display:flex;flex-direction:column;justify-content:center;gap:var(--sp-4)}
+  .tag{align-self:flex-start;background:var(--accent-soft);color:var(--accent-deep);font-weight:600;font-size:14px;padding:var(--sp-1) var(--sp-3);border-radius:var(--r-pill)}
+  .msg{font-size:22px;line-height:1.7;font-weight:500;word-break:break-word;white-space:pre-wrap}
+  .empty{color:var(--ink-2);font-size:17px;line-height:1.7;text-align:center}
+  .notice{background:var(--warning-soft);color:var(--warning);font-weight:600;font-size:15px;padding:var(--sp-3) var(--sp-4);border-radius:var(--r-ctrl);text-align:center}
+
+  .btn{font-family:var(--font);font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);
+    border-radius:var(--r-pill);transition:transform var(--dur-micro) var(--ease),box-shadow var(--dur-micro) var(--ease);min-height:48px}
+  .btn:active{transform:scale(.97)}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(47,107,255,.32);font-size:22px;padding:var(--sp-4) var(--sp-8);min-height:68px;width:100%}
+  .btn-primary:hover{background:var(--accent-deep)}
+  .btn-glass{background:var(--glass-bg-strong);color:var(--ink);backdrop-filter:blur(12px) saturate(160%);-webkit-backdrop-filter:blur(12px) saturate(160%);
+    box-shadow:var(--specular),var(--hairline);font-size:16px;padding:var(--sp-3) var(--sp-6);flex:1}
+  .btn-glass[disabled]{color:var(--ink-3);cursor:not-allowed}
+  .btn-danger{background:var(--danger-soft);color:var(--danger);font-size:15px;padding:var(--sp-3) var(--sp-6);flex:1}
+  .btn-done{color:var(--success)}
+  .row{display:flex;gap:var(--sp-3)}
+  svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  footer{margin-top:auto;text-align:center;color:var(--ink-3);font-size:13px;padding-top:var(--sp-6)}
+  @media (max-width:400px){.msg{font-size:20px}h1{font-size:22px}}
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>新人業務考題抽選器</h1>
+  <div class="count" aria-live="polite">本輪剩餘 <b id="remain">-</b> / 共 <b id="total">-</b> 題</div>
+
+  <section class="card glass" aria-live="polite">
+    <div id="notice" class="notice" hidden></div>
+    <div id="empty" class="empty">按下面的「抽一題」，<br>抽出一則客人傳來的訊息。</div>
+    <div id="question" hidden>
+      <span class="tag" id="cat"></span>
+      <p class="msg" id="text"></p>
+    </div>
+  </section>
+
+  <button class="btn btn-primary" id="drawBtn" type="button">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+    抽一題
+  </button>
+
+  <div class="row">
+    <button class="btn btn-glass" id="copyBtn" type="button" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>
+      <span id="copyLabel">複製題目</span>
+    </button>
+    <button class="btn btn-danger" id="resetBtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
+      <span id="resetLabel">重新洗牌</span>
+    </button>
+  </div>
+
+  <footer>由 貳輪嶼 製作</footer>
+</main>
+
+<script src="questions.js"></script>
+<script>
+(function () {
+  var KEY = 'examPicker.v1';
+  var questions = Array.isArray(window.QUESTIONS) ? window.QUESTIONS : [];
+  var allIds = questions.map(function (q) { return q.id; });
+  var byId = {};
+  questions.forEach(function (q) { byId[q.id] = q; });
+
+  var state = { drawn: [], current: null };
+  var memoryOk = true; // localStorage 不可用時只在記憶體中運作
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var s = JSON.parse(raw);
+        if (s && Array.isArray(s.drawn)) state.drawn = s.drawn;
+        if (s && s.current != null) state.current = s.current;
+      }
+    } catch (e) { memoryOk = false; }
+    // 容錯：忽略已不存在的 id，並去除重複
+    var seen = {};
+    state.drawn = state.drawn.filter(function (id) {
+      if (!byId[id] || seen[id]) return false;
+      seen[id] = true; return true;
+    });
+    if (!byId[state.current]) state.current = null;
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { memoryOk = false; }
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var noticeTimer = null;
+
+  function showNotice(msg) {
+    var n = $('notice');
+    n.textContent = msg; n.hidden = false;
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(function () { n.hidden = true; }, 5000);
+  }
+  function hideNotice() { clearTimeout(noticeTimer); $('notice').hidden = true; }
+
+  function render() {
+    $('total').textContent = allIds.length;
+    $('remain').textContent = allIds.length - state.drawn.length;
+    var q = byId[state.current];
+    $('empty').hidden = !!q;
+    $('question').hidden = !q;
+    $('copyBtn').disabled = !q;
+    if (q) { $('cat').textContent = q.category; $('text').textContent = q.text; }
+    if (!allIds.length) $('empty').textContent = '題庫是空的，請先在 questions.js 加題。';
+    $('drawBtn').disabled = !allIds.length;
+  }
+
+  function draw() {
+    if (!allIds.length) return;
+    hideNotice();
+    var started = false;
+    if (state.drawn.length >= allIds.length) { state.drawn = []; started = true; }
+    var pool = allIds.filter(function (id) { return state.drawn.indexOf(id) === -1; });
+    // 剛開新一輪時，避免第一題與上一輪最後一題相同
+    if (started && pool.length > 1) {
+      pool = pool.filter(function (id) { return id !== state.current; });
+    }
+    var id = pool[Math.floor(Math.random() * pool.length)];
+    state.drawn.push(id);
+    state.current = id;
+    save(); render(); resetCopy();
+    if (started) showNotice('上一輪抽完了，已開始新的一輪。');
+    else if (state.drawn.length >= allIds.length) showNotice('這一輪抽完了！再按「抽一題」會開始新的一輪。');
+  }
+
+  // 複製
+  var copyTimer = null;
+  function resetCopy() {
+    clearTimeout(copyTimer);
+    $('copyLabel').textContent = '複製題目';
+    $('copyBtn').classList.remove('btn-done');
+  }
+  function copyFallback(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta);
+    return ok;
+  }
+  function copyDone(ok) {
+    $('copyLabel').textContent = ok ? '已複製' : '複製失敗，請長按文字手動複製';
+    $('copyBtn').classList.toggle('btn-done', ok);
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(resetCopy, 2000);
+  }
+  function copyQuestion() {
+    var q = byId[state.current];
+    if (!q) return;
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(q.text).then(
+        function () { copyDone(true); },
+        function () { copyDone(copyFallback(q.text)); }
+      );
+    } else {
+      copyDone(copyFallback(q.text));
+    }
+  }
+
+  // 重新洗牌（二次確認：第一次按變成「再按一次確認」，4 秒內沒按就還原）
+  var resetTimer = null, resetArmed = false;
+  function disarmReset() {
+    resetArmed = false; clearTimeout(resetTimer);
+    $('resetLabel').textContent = '重新洗牌';
+  }
+  function resetClick() {
+    if (!resetArmed) {
+      resetArmed = true;
+      $('resetLabel').textContent = '再按一次確認洗牌';
+      resetTimer = setTimeout(disarmReset, 4000);
+      return;
+    }
+    disarmReset();
+    state = { drawn: [], current: null };
+    save(); render(); resetCopy(); hideNotice();
+    showNotice('已重新洗牌，所有題目都可以再抽。');
+  }
+
+  $('drawBtn').addEventListener('click', draw);
+  $('copyBtn').addEventListener('click', copyQuestion);
+  $('resetBtn').addEventListener('click', resetClick);
+
+  load(); render();
+})();
+</script>
+</body>
+</html>
