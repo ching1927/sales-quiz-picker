@@ -6,124 +6,288 @@
 <title>管理題庫｜新人業務考題抽選器</title>
 <link rel="stylesheet" href="tokens.css">
 <style>
-  /* 只使用 tokens.css 的變數，不自訂新色；寫法與 index.html 一致 */
-  .page{max-width:720px;margin:0 auto;padding:var(--sp-6) var(--sp-4) var(--sp-8);min-height:100vh;display:flex;flex-direction:column;gap:var(--sp-4)}
-  h1{font-size:24px;font-weight:700;letter-spacing:.02em;text-align:center;padding:var(--sp-2) 0}
-  h2{font-size:17px;font-weight:700}
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3)}
-  .card{padding:var(--sp-6);display:flex;flex-direction:column;gap:var(--sp-4)}
-  .hint{color:var(--ink-2);font-size:14px;line-height:1.6}
+  /* 只使用 tokens.css 的變數，不自訂新色、不重定義 :root；外觀語言沿用抽題頁樣品 */
+  svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  [hidden]{display:none!important}
 
-  .link-btn{font-family:var(--font);font-size:14px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-pill);min-height:36px;text-decoration:none;display:inline-flex;align-items:center;gap:var(--sp-1)}
-  .link-btn:hover{background:var(--accent-soft)}
-  .link-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .link-btn[disabled]{color:var(--ink-3);cursor:not-allowed;background:none}
+  /* ===== 背景 mesh 光暈 ===== */
+  .mesh{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .orb{position:absolute;border-radius:50%;opacity:.5;will-change:transform}
+  .orb.o1{width:90vmax;height:90vmax;left:-35vmax;top:-45vmax;background:radial-gradient(circle,var(--seq-2) 0%,transparent 62%);animation:drift 14s var(--ease) infinite alternate}
+  .orb.o2{width:80vmax;height:80vmax;right:-40vmax;top:20vh;background:radial-gradient(circle,var(--cat-2) 0%,transparent 62%);opacity:.22;animation:drift 18s var(--ease) infinite alternate-reverse}
+  .orb.o3{width:70vmax;height:70vmax;left:-20vmax;bottom:-40vmax;background:radial-gradient(circle,var(--seq-1) 0%,transparent 62%);opacity:.7;animation:drift 16s var(--ease) infinite alternate}
+  @keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(6vmax,4vmax,0)}}
 
+  .page{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:var(--sp-6) var(--sp-4) var(--sp-8);min-height:100vh;display:flex;flex-direction:column;gap:var(--sp-4)}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+  /* ===== 按鈕 ===== */
   .btn{font-family:var(--font);font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);
-    border-radius:var(--r-pill);transition:transform var(--dur-micro) var(--ease),box-shadow var(--dur-micro) var(--ease);min-height:44px;font-size:15px;padding:var(--sp-2) var(--sp-4)}
-  .btn:active{transform:scale(.97)}
-  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+    border-radius:var(--r-pill);min-height:44px;font-size:15px;padding:var(--sp-2) var(--sp-4);text-align:center;line-height:1.3;text-decoration:none;
+    transition:transform var(--dur-micro) var(--ease),box-shadow var(--dur-micro) var(--ease),background var(--dur-micro) var(--ease),color var(--dur-micro) var(--ease)}
+  .btn:active:not([disabled]){transform:scale(.97)}
+  .btn:focus-visible,.link-btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.x-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn svg{width:18px;height:18px}
   .btn[disabled]{cursor:not-allowed;opacity:.55}
-  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(47,107,255,.32)}
-  .btn-primary:hover{background:var(--accent-deep)}
-  .btn-glass{background:var(--glass-bg-strong);color:var(--ink);backdrop-filter:blur(12px) saturate(160%);-webkit-backdrop-filter:blur(12px) saturate(160%);box-shadow:var(--specular),var(--hairline)}
-  .btn-danger{background:var(--danger-soft);color:var(--danger)}
-  .btn-sm{min-height:40px;font-size:14px;padding:var(--sp-1) var(--sp-3)}
-  .row{display:flex;gap:var(--sp-3);flex-wrap:wrap;align-items:center}
-  svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .btn-primary{color:#fff;background:var(--accent);box-shadow:0 8px 22px rgba(47,107,255,.32),var(--specular)}
+  .btn-primary[disabled]{background:var(--track);color:var(--ink-2);box-shadow:none;opacity:1}
+  .btn-glass{background:var(--glass-bg-strong);color:var(--ink);box-shadow:var(--specular),var(--hairline)}
+  .btn-warn{background:var(--warning-soft);color:var(--ink);box-shadow:var(--specular),inset 0 0 0 1px var(--warning-soft)}
+  .btn-warn svg{color:var(--warning)}
+  .btn-warn.armed{background:var(--warning);box-shadow:var(--specular)}
+  .btn-warn.armed svg{color:var(--ink)}
+  .btn-danger{background:var(--glass-bg-strong);color:var(--danger);box-shadow:var(--specular),inset 0 0 0 1px var(--danger-soft)}
+  .btn-danger.armed{background:var(--danger);color:#fff;box-shadow:var(--specular)}
+  .btn-sm{font-size:14px;padding:var(--sp-2) var(--sp-3)}
+  /* 進行中：被鎖住的按鈕變灰，但正在執行的那顆維持原色並顯示轉圈 */
+  .btn.is-busy[disabled]{opacity:1;cursor:progress}
+  .btn-primary.is-busy[disabled]{background:var(--accent);color:#fff;box-shadow:0 8px 22px rgba(47,107,255,.32),var(--specular)}
+  .spin{width:18px;height:18px;border-radius:50%;border:2.5px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite;flex:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (hover:hover){
+    .btn-primary:hover:not([disabled]){background:var(--accent-deep)}
+    .btn-glass:hover:not([disabled]),.btn-danger:hover:not([disabled]):not(.armed),.btn-warn:hover:not([disabled]):not(.armed){box-shadow:var(--specular),var(--hairline),var(--shadow)}
+  }
+  .link-btn{font-family:var(--font);font-size:14px;font-weight:600;color:var(--accent-deep);background:none;border:none;cursor:pointer;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-pill);min-height:44px;min-width:44px;text-decoration:none;display:inline-flex;align-items:center;gap:var(--sp-1);
+    transition:background var(--dur-micro) var(--ease)}
+  .link-btn svg{width:18px;height:18px}
+  @media (hover:hover){.link-btn:hover{background:var(--accent-soft)}}
 
-  label{font-size:14px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:var(--sp-1)}
-  input[type=password],input[type=text],select,textarea{font-family:var(--font);font-size:16px;color:var(--ink);width:100%;min-height:48px;
-    padding:var(--sp-3) var(--sp-4);background:var(--glass-bg-strong);border:none;border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline)}
-  textarea{min-height:110px;resize:vertical;line-height:1.6}
-  input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .field{display:flex;flex-direction:column}
+  /* ===== 登入（與抽題頁樣品相同） ===== */
+  #loginView{flex:1;display:flex;align-items:center;justify-content:center;padding:var(--sp-8) 0}
+  .login-card{width:100%;max-width:400px;padding:var(--sp-8) var(--sp-4);display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--sp-3);animation:rise var(--dur-in) var(--ease) both}
+  .lock{width:64px;height:64px;border-radius:var(--r-ctrl);display:flex;align-items:center;justify-content:center;color:var(--accent-deep);background:var(--accent-soft);box-shadow:var(--specular),var(--hairline)}
+  .lock svg{width:30px;height:30px}
+  .eyebrow{font-size:13px;font-weight:600;letter-spacing:.12em;color:var(--accent-deep)}
+  .login-card h1{font-size:26px;line-height:1.25;font-weight:700;letter-spacing:.01em}
+  .hint{color:var(--ink-2);font-size:14px;line-height:1.7}
+  .hint span{display:block;text-wrap:balance}
+  #loginForm{width:100%;display:flex;flex-direction:column;gap:var(--sp-3);margin-top:var(--sp-3);text-align:left}
+  label,.lab{font-size:14px;font-weight:600;color:var(--ink-2)}
+  .input,input[type=password],input[type=text],select,textarea{font-family:var(--font);font-size:16px;color:var(--ink);width:100%;min-height:48px;padding:var(--sp-3) var(--sp-4);background:var(--glass-bg-strong);border:none;border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline),inset 0 0 0 1px var(--ink-line)}
+  #pwInput{font-size:18px;min-height:56px}
+  #pwInput.bad,.bad{box-shadow:var(--specular),inset 0 0 0 1.5px var(--danger)}
+  #pwInput.bad{animation:shake .4s var(--ease)}
+  #loginBtn{width:100%;min-height:56px;font-size:17px}
+  @keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+  .msg-bar{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm);background:var(--danger-soft);color:var(--ink);font-size:14px;font-weight:600;line-height:1.5}
+  .msg-bar svg{width:18px;height:18px;color:var(--danger)}
+  .msg-bar.warn{background:var(--warning-soft)}
+  .msg-bar.warn svg{color:var(--warning)}
 
-  .msg-bar{border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);font-size:15px;line-height:1.6;font-weight:600}
-  .msg-bar.err{background:var(--danger-soft);color:var(--danger)}
-  .msg-bar.ok{background:var(--success-soft);color:var(--success)}
-  .msg-bar.warn{background:var(--warning-soft);color:var(--warning)}
+  /* ===== 頁首 ===== */
+  #adminView{display:flex;flex-direction:column;gap:var(--sp-4)}
+  .app-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--sp-2) var(--sp-4);padding:var(--sp-4) var(--sp-1) var(--sp-1);animation:rise var(--dur-in) var(--ease) both}
+  .app-head .ttl{display:flex;flex-direction:column;gap:var(--sp-1)}
+  .app-head h1{font-size:30px;line-height:1.2;font-weight:700;letter-spacing:.01em}
+  .head-actions{display:flex;align-items:center;gap:var(--sp-1);margin-left:calc(var(--sp-3) * -1)}
+  @media (min-width:560px){.head-actions{margin-left:0}}
 
-  .group{padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-3)}
-  .group-head{display:flex;flex-direction:column;gap:var(--sp-2)}
-  .group-title{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);flex-wrap:wrap}
-  .group-title h2{word-break:break-word}
-  .group-title .count{color:var(--ink-2);font-family:var(--mono);font-size:13px;font-weight:400}
-  .group-actions{display:flex;gap:var(--sp-2);flex-wrap:wrap}
-  .rename-box{display:flex;flex-direction:column;gap:var(--sp-2)}
-  .q-item{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-3) var(--sp-4);background:var(--glass-bg-strong);border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline)}
+  /* ===== 成功／失敗提示條 ===== */
+  .toast{position:fixed;z-index:20;top:var(--sp-4);left:50%;width:min(calc(100vw - var(--sp-8)),480px);transform:translateX(-50%);
+    display:flex;align-items:flex-start;gap:var(--sp-3);padding:var(--sp-3) var(--sp-4);border-radius:var(--r-ctrl);
+    background:var(--glass-bg-strong);backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+    box-shadow:var(--specular),var(--hairline),var(--shadow-lg);font-size:15px;font-weight:600;line-height:1.6;animation:toastIn var(--dur-micro) var(--ease) both}
+  .toast .t-ico{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-1px}
+  .toast .t-ico svg{width:16px;height:16px;stroke-width:3}
+  .toast.ok .t-ico{background:var(--success-soft);color:var(--success)}
+  .toast.err .t-ico{background:var(--danger-soft);color:var(--danger)}
+  .toast .t-msg{flex:1;min-width:0;padding-top:2px;word-break:break-word}
+  .x-btn{flex:none;width:44px;height:44px;margin:-8px -12px -8px 0;border:none;background:none;border-radius:50%;cursor:pointer;color:var(--ink-2);display:flex;align-items:center;justify-content:center}
+  .x-btn svg{width:18px;height:18px}
+  @media (hover:hover){.x-btn:hover{background:var(--skeleton-base)}}
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,-12px)}to{opacity:1;transform:translate(-50%,0)}}
+
+  /* ===== 統計小卡 ===== */
+  .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3)}
+  .stat{padding:var(--sp-3) var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-1);animation:rise var(--dur-in) var(--ease) both}
+  .stat:nth-child(2){animation-delay:80ms}.stat:nth-child(3){animation-delay:160ms}
+  .stat .st{display:flex;flex-direction:column;gap:var(--sp-1);min-width:0}
+  .stat .ico{width:32px;height:32px;margin-bottom:var(--sp-1)}
+  .stat .ico svg{width:18px;height:18px}
+  .stat .num{font-family:var(--mono);font-size:28px;line-height:1.1;font-weight:700;color:var(--ink)}
+  .stat .lbl{font-size:13px;color:var(--ink-2);line-height:1.4}
+  @media (min-width:560px){.stat{padding:var(--sp-4);flex-direction:row;align-items:center;gap:var(--sp-3)}.stat .ico{width:44px;height:44px;margin:0}.stat .ico svg{width:22px}.stat .num{font-size:32px}}
+  .ico{width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--ink-2);background:var(--skeleton-base);flex:none}
+  .ico svg{width:20px;height:20px}
+  .stat .ico{color:var(--accent-deep);background:var(--accent-soft)}
+
+  /* ===== 版面：手機單欄，桌機兩欄（左列表、右表單固定） ===== */
+  .layout{display:grid;gap:var(--sp-4);grid-template-columns:minmax(0,1fr);grid-template-areas:"tool" "form" "list"}
+  .tool{grid-area:tool}.formcol{grid-area:form}.listcol{grid-area:list}
+  @media (min-width:900px){
+    .layout{grid-template-columns:minmax(0,1fr) 380px;grid-template-areas:"tool form" "list form";grid-template-rows:auto 1fr;gap:var(--sp-4) var(--sp-6)}
+    .formcol{align-self:start;position:sticky;top:var(--sp-4)}
+    .only-mobile{display:none!important}
+    .tool-row .btn{flex:0 0 auto}
+  }
+  @media (max-width:899px){.formcol[data-open="false"]{display:none}}
+
+  /* ===== 工具列 ===== */
+  .tool{padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-3)}
+  .tool-row{display:flex;flex-wrap:wrap;gap:var(--sp-3)}
+  .tool-row .btn{flex:1 1 150px}
+  .tool-note{font-size:13px;color:var(--ink-2);line-height:1.6}
+  .tool-note b{color:var(--ink)}
+
+  /* ===== 分類群組 ===== */
+  #listBox{display:flex;flex-direction:column;gap:var(--sp-4)}
+  .group{padding:var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-2)}
+  .group.enter{animation:rise var(--dur-in) var(--ease) both}
+  .g-head{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-3)}
+  .g-toggle{color:var(--ink);flex:1 1 220px;min-width:0;min-height:56px;display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-2) var(--sp-2)}
+  .g-toggle .gname{font-size:17px;font-weight:700;word-break:break-word}
+  .g-toggle .gmeta{font-size:13px;color:var(--ink-2);line-height:1.5}
+  .g-toggle .gmeta b{font-family:var(--mono);font-weight:700;color:var(--ink)}
+  .g-toggle .gtxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .g-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);padding:0 var(--sp-2)}
+  .g-body{display:flex;flex-direction:column;gap:var(--sp-2);padding-top:var(--sp-1)}
+  .rename-box{flex:1 1 100%;display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-2)}
+  .rename-row{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
+  .rename-row .input{flex:1 1 180px;width:auto}
+  .rename-row .btn{flex:none}
+
+  /* ===== 題目卡 ===== */
+  .q-item{display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-3) var(--sp-4);background:var(--glass-bg-strong);border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline);transition:box-shadow var(--dur-micro) var(--ease),background var(--dur-micro) var(--ease)}
+  .q-item.flash{animation:flash 2.4s var(--ease) both}
+  @keyframes flash{0%,60%{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent),var(--specular)}100%{background:var(--glass-bg-strong);box-shadow:var(--specular),var(--hairline)}}
+  .q-item.editing{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent),var(--specular)}
   .q-text{font-size:16px;line-height:1.7;word-break:break-word;white-space:pre-wrap}
   .q-foot{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
   .q-foot .spacer{flex:1}
-  .tag{background:var(--accent-soft);color:var(--accent-deep);font-weight:600;font-size:12px;padding:2px var(--sp-3);border-radius:var(--r-pill)}
-  .empty{color:var(--ink-2);text-align:center;line-height:1.7;padding:var(--sp-4)}
-  #listBox{display:flex;flex-direction:column;gap:var(--sp-4)}
+  .tag{background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:13px;letter-spacing:.04em;padding:var(--sp-1) var(--sp-3);border-radius:var(--r-pill)}
+  .q-item.editing .tag{background:var(--glass-bg-strong)}
 
-  footer{margin-top:auto;text-align:center;color:var(--ink-3);font-size:13px;padding-top:var(--sp-6)}
-  @media (max-width:400px){h1{font-size:22px}.card{padding:var(--sp-4)}}
+  /* ===== 載入骨架／錯誤／空狀態 ===== */
+  .skel{height:120px;border-radius:var(--r-card);background:linear-gradient(90deg,var(--skeleton-base),var(--skeleton-sheen),var(--skeleton-base));background-size:200% 100%;animation:sheen 1.4s linear infinite}
+  @keyframes sheen{from{background-position:200% 0}to{background-position:-200% 0}}
+  .error,.empty-lib{display:flex;flex-direction:column;align-items:center;gap:var(--sp-3);text-align:center;color:var(--ink);padding:var(--sp-8) var(--sp-4);font-size:15px;line-height:1.7}
+  .error{background:var(--danger-soft);border-radius:var(--r-card)}
+  .eico{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--danger);background:var(--glass-bg-strong);box-shadow:var(--specular),var(--hairline)}
+  .empty-lib .eico{color:var(--accent-deep);background:var(--accent-soft)}
+  .etitle{font-size:17px;font-weight:700}
+  .empty-lib .sub{color:var(--ink-2)}
+
+  /* ===== 表單卡 ===== */
+  .form-card{background:#fff;padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-4)}
+  .form-head{display:flex;align-items:center;gap:var(--sp-3)}
+  .form-head h2{font-size:18px;font-weight:700}
+  .form-head .ico{color:var(--accent-deep);background:var(--accent-soft)}
+  .form-card.is-edit .form-head h2{color:var(--accent-deep)}
+  .edit-note{display:flex;flex-direction:column;gap:var(--sp-1);padding:var(--sp-3);background:var(--accent-soft);border-radius:var(--r-ctrl);font-size:14px;line-height:1.6}
+  .edit-note .k{font-size:13px;font-weight:700;color:var(--accent-deep)}
+  .edit-note .q{color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+  .field{display:flex;flex-direction:column;gap:var(--sp-2)}
+  .field-top{display:flex;justify-content:space-between;align-items:baseline;gap:var(--sp-2)}
+  .counter{font-family:var(--mono);font-size:13px;color:var(--ink-2)}
+  textarea{min-height:140px;resize:vertical;line-height:1.7}
+  .sel-wrap{position:relative}
+  .sel-wrap select{appearance:none;-webkit-appearance:none;padding-right:var(--sp-12);cursor:pointer}
+  .sel-wrap svg{position:absolute;right:var(--sp-4);top:50%;margin-top:-9px;width:18px;height:18px;color:var(--ink-2);pointer-events:none}
+  .field-err{display:flex;align-items:center;gap:var(--sp-2);font-size:14px;font-weight:600;color:var(--danger);line-height:1.5}
+  .field-err svg{width:16px;height:16px}
+  .form-btns{display:flex;gap:var(--sp-3)}
+  .form-btns .btn-primary{flex:1;min-height:52px;font-size:16px}
+  .form-btns .btn-glass{min-height:52px}
+
+  footer{margin-top:auto;text-align:center;color:var(--ink-2);font-size:13px;padding-top:var(--sp-6)}
+  @media (max-width:400px){.app-head h1{font-size:26px}}
 </style>
 </head>
 <body>
-<main class="page">
-  <div class="topbar">
-    <a class="link-btn" href="index.html">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>回抽題頁
-    </a>
-  </div>
-  <h1>管理題庫</h1>
+<div class="mesh" aria-hidden="true"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
 
-  <!-- 登入關卡 -->
-  <section id="loginView" class="card glass">
-    <p class="hint">這是管理頁，請輸入管理密碼。密碼只留在這個分頁，關掉分頁就要重新輸入。</p>
-    <div id="loginMsg" class="msg-bar err" role="alert" hidden></div>
-    <form id="loginForm" class="field" autocomplete="off">
-      <label for="pwInput">管理密碼</label>
-      <input type="password" id="pwInput" autocomplete="off">
-      <div class="row" style="margin-top:var(--sp-4)">
-        <button class="btn btn-primary" id="loginBtn" type="submit">進入</button>
-      </div>
-    </form>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<main class="page">
+
+  <!-- 登入畫面 -->
+  <section id="loginView" hidden>
+    <div class="login-card glass">
+      <div class="lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/><path d="M12 15.5v2"/></svg></div>
+      <div class="eyebrow">貳輪嶼 · 新人訓練</div>
+      <h1>管理題庫</h1>
+      <p class="hint"><span>管理題庫需要密碼。</span><span>密碼只留在這個分頁，<wbr>關掉分頁就要重新輸入。</span></p>
+      <form id="loginForm" autocomplete="off">
+        <label for="pwInput">管理密碼</label>
+        <input type="password" id="pwInput" autocomplete="off" aria-describedby="loginMsg">
+        <div id="loginMsg" class="msg-bar" role="alert" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></svg>
+          <span id="loginMsgText"></span>
+        </div>
+        <button class="btn btn-primary" id="loginBtn" type="submit"><span class="lbl">進入</span></button>
+      </form>
+    </div>
   </section>
 
   <!-- 管理畫面 -->
-  <div id="adminView" hidden style="display:flex;flex-direction:column;gap:var(--sp-4)">
-    <div id="statusBar" class="msg-bar" role="alert" hidden></div>
+  <div id="adminView" hidden>
+    <header class="app-head">
+      <div class="ttl">
+        <span class="eyebrow">貳輪嶼 · 新人訓練</span>
+        <h1>管理題庫</h1>
+      </div>
+      <div class="head-actions">
+        <a class="link-btn" href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>回抽題頁</a>
+        <button class="link-btn" id="logoutBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M15 8l4 4-4 4"/><path d="M19 12H9"/></svg><span class="lbl">登出</span></button>
+      </div>
+    </header>
 
-    <section class="card glass">
-      <h2 id="formTitle">新增題目</h2>
-      <form id="qForm" class="field" style="gap:var(--sp-4)" autocomplete="off">
-        <div class="field">
-          <label for="catSelect">分類</label>
-          <select id="catSelect"></select>
-        </div>
-        <div class="field" id="newCatBox" hidden>
-          <label for="newCatInput">新分類名稱</label>
-          <input type="text" id="newCatInput" maxlength="40">
-        </div>
-        <div class="field">
-          <label for="textInput">題目內容（客人傳來的訊息）</label>
-          <textarea id="textInput"></textarea>
-        </div>
-        <div class="row">
-          <button class="btn btn-primary" id="saveBtn" type="submit">儲存題目</button>
-          <button class="btn btn-glass" id="cancelEditBtn" type="button" hidden>取消編輯</button>
-        </div>
-      </form>
+    <section class="stats" aria-label="題庫統計">
+      <div class="stat glass"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg></span><span class="st"><span class="num" id="stTotal" data-v="0">0</span><span class="lbl">總題數</span></span></div>
+      <div class="stat glass"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg></span><span class="st"><span class="num" id="stCats" data-v="0">0</span><span class="lbl">分類數</span></span></div>
+      <div class="stat glass"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg></span><span class="st"><span class="num" id="stDrawn" data-v="0">0</span><span class="lbl">本輪已抽題數</span></span></div>
     </section>
 
-    <section class="card glass">
-      <div class="field">
-        <label for="filterSelect">依分類篩選</label>
-        <select id="filterSelect"></select>
-      </div>
-      <p class="hint">洗牌會清除「本輪已抽」的記錄，<b>會影響所有裝置</b>（大家都會重新開始抽）。</p>
-      <div class="row">
-        <button class="btn btn-danger" id="resetAllBtn" type="button">全部重新洗牌</button>
-        <button class="btn btn-glass" id="logoutBtn" type="button">登出</button>
-      </div>
-    </section>
+    <div class="layout">
+      <!-- 工具列 -->
+      <section class="tool glass" aria-label="篩選與操作">
+        <div class="field" id="filterField">
+          <label for="filterSelect">選擇分類</label>
+          <div class="sel-wrap"><select id="filterSelect"></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div>
+        </div>
+        <div class="tool-row">
+          <button class="btn btn-primary only-mobile" id="addBtn" type="button" disabled><span class="lbl">新增題目</span></button>
+          <button class="btn btn-warn" id="resetAllBtn" type="button" disabled><span class="lbl"></span></button>
+        </div>
+        <p class="tool-note">洗牌會清除「本輪已抽」的記錄，<b>會影響所有裝置</b>（大家都會重新開始抽）。</p>
+      </section>
 
-    <div id="listBox" aria-live="polite"></div>
+      <!-- 清單 -->
+      <div class="listcol"><div id="listBox" aria-live="polite" aria-busy="true"></div></div>
+
+      <!-- 新增／編輯表單（桌機固定在右欄；手機點「新增題目／編輯」後展開在列表上方） -->
+      <aside class="formcol" id="formCol" data-open="false">
+        <form id="qForm" class="form-card glass" autocomplete="off" novalidate>
+          <div class="form-head">
+            <span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true" id="formIcon"><path d="M12 5v14M5 12h14"/></svg></span>
+            <h2 id="formTitle">新增題目</h2>
+          </div>
+          <div class="edit-note" id="editNote" hidden>
+            <span class="k" id="editNoteK">正在編輯這一題</span>
+            <span class="q" id="editNoteQ"></span>
+          </div>
+          <div class="field">
+            <label for="catSelect">分類</label>
+            <div class="sel-wrap"><select id="catSelect"></select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></div>
+          </div>
+          <div class="field" id="newCatBox" hidden>
+            <label for="newCatInput">新分類名稱</label>
+            <input type="text" id="newCatInput" maxlength="40" placeholder="例如：試乘">
+            <div class="field-err" id="catErr" role="alert" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></svg><span></span></div>
+          </div>
+          <div class="field">
+            <div class="field-top"><label for="textInput">題目內容（客人傳來的訊息）</label><span class="counter" id="textCount">0 字</span></div>
+            <textarea id="textInput" aria-describedby="textErr"></textarea>
+            <div class="field-err" id="textErr" role="alert" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></svg><span></span></div>
+          </div>
+          <div class="form-btns">
+            <button class="btn btn-primary" id="saveBtn" type="submit" disabled><span class="lbl">儲存</span></button>
+            <button class="btn btn-glass" id="cancelBtn" type="button"><span class="lbl">取消</span></button>
+          </div>
+        </form>
+      </aside>
+    </div>
   </div>
 
   <footer>由 貳輪嶼 製作</footer>
@@ -133,322 +297,523 @@
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var NEW_CAT = '__new__';
+  // 下拉選項的 value：分類一律用「在 names 裡的索引」，特殊選項用下面兩個固定字樣，
+  // 因為分類名稱是自由輸入的字串，不可能與索引（純數字）或這兩個字樣以外的值混淆，名稱叫什麼都不會衝突
+  var NEW_VAL = 'new', ALL_VAL = 'all';
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var isDesktop = function () { return window.matchMedia('(min-width:900px)').matches; };
 
-  var pw = null;            // 密碼存在記憶體＋sessionStorage（與抽題頁共用，關分頁即清）；不用 localStorage / cookie / URL
+  // 密碼存在記憶體＋sessionStorage（與抽題頁共用，關分頁即清）；不用 localStorage / cookie / URL
   var PW_KEY = 'quiz_pw';
   function readPw() { try { return sessionStorage.getItem(PW_KEY); } catch (e) { return null; } }
   function savePw(v) { try { sessionStorage.setItem(PW_KEY, v); } catch (e) { /* 不可用就只留記憶體 */ } }
   function clearPw() { try { sessionStorage.removeItem(PW_KEY); } catch (e) {} }
-  var questions = [];       // 目前題庫
-  var filterCat = '';       // 篩選分類（空字串＝全部）
-  var editingId = null;     // 編輯中的題目 id（null＝新增）
-  var renamingCat = null;   // 正在改名的分類
-  var busy = false;
-  var disabledByBusy = [];  // 進行中被我鎖住的按鈕，結束時還原
-  var statusTimer = null;
 
-  // 建立元素的小工具：文字一律走 textContent，不用 innerHTML
+  var pw = null, names = [], questions = [], loaded = false;
+  var filterCat = '', filterAll = false; // filterAll＝篩選選了「全部分類」（此時 filterCat 不使用）
+  var editingId = null, renamingCat = null, flashId = null;
+  var formCatName = null, formTouched = false, formNote = null; // 表單目前選的分類名稱（null＝新增分類）、使用者是否手動選過、待附上的提示
+  var sess = 0; // 登入工作階段編號：登入／登出各 +1，非同步回應回來時比對，不符就丟棄
+  var STALE = {};
+  var busy = false, formOpen = false, toastTimer = null, animateList = false;
+
+  /* ===== SVG 圖示（viewBox 24x24、線條粗細統一由 CSS 控制）；分類圖示沿用抽題頁樣品 ===== */
+  var ICONS = {
+    '詢價': '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><path d="M7.5 7.5h.01"/>',
+    '殺價': '<path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+    '客訴': '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M12 8v4"/><path d="M12 15.5h.01"/>',
+    '交車': '<circle cx="7.5" cy="15.5" r="4"/><path d="M10.4 12.6L20 3"/><path d="M16 7l3 3"/><path d="M13.5 9.5l2 2"/>',
+    '售後': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/>'
+  };
+  var FALLBACK_ICON = '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>';
+  var P = {
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    pencil: '<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 7.5l3 3"/>',
+    trash: '<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6.5 7l1 13h9l1-13"/>',
+    refresh: '<path d="M20 11a8 8 0 0 0-14.4-4.2L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.4 4.2L20 15"/><path d="M20 20v-5h-5"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    chev: '<path d="m6 9 6 6 6-6"/>',
+    alert: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/>',
+    tray: '<path d="M4 13l2-8h12l2 8"/><path d="M4 13v6h16v-6h-5l-1 2h-4l-1-2z"/>',
+    wifi: '<path d="M2 8.8a15 15 0 0 1 20 0"/><path d="M5.5 12.4a10 10 0 0 1 13 0"/><path d="M9 16a5 5 0 0 1 6 0"/><path d="M12 19.5h.01"/><path d="M3 3l18 18"/>'
+  };
+  function svg(inner) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + inner + '</svg>'; }
+
+  /* 建立元素：使用者資料一律 textContent */
   function el(tag, cls, text) {
     var n = document.createElement(tag);
     if (cls) n.className = cls;
     if (text != null) n.textContent = text;
     return n;
   }
-
-  function showStatus(kind, msg) {
-    var b = $('statusBar');
-    b.className = 'msg-bar ' + kind;
-    b.textContent = msg; b.hidden = false;
-    clearTimeout(statusTimer);
-    if (kind !== 'err') statusTimer = setTimeout(function () { b.hidden = true; }, 5000);
+  function mkBtn(cls, icon, label) {
+    var b = el('button', 'btn ' + cls); b.type = 'button';
+    if (icon) b.insertAdjacentHTML('beforeend', svg(icon));
+    b.appendChild(el('span', 'lbl', label));
+    return b;
   }
-  function clearStatus() { clearTimeout(statusTimer); $('statusBar').hidden = true; }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
 
-  function errText(e) {
+  /* ===== 提示條 ===== */
+  function showToast(kind, msg) {
+    var t = $('toast'); clear(t);
+    t.className = 'toast ' + kind; t.setAttribute('role', kind === 'err' ? 'alert' : 'status');
+    var ic = el('span', 't-ico'); ic.innerHTML = svg(kind === 'err' ? P.alert : P.check);
+    if (kind === 'ok' && formNote) { msg += formNote; formNote = null; }
+    var m = el('span', 't-msg', msg);
+    t.appendChild(ic); t.appendChild(m);
+    if (kind === 'err') {
+      var x = el('button', 'x-btn'); x.type = 'button'; x.setAttribute('aria-label', '關閉提示'); x.innerHTML = svg(P.close);
+      x.addEventListener('click', function () { t.hidden = true; });
+      t.appendChild(x);
+    }
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    if (kind !== 'err') toastTimer = setTimeout(function () { t.hidden = true; }, 4000);
+  }
+  function errText(e, what) {
     var m = e && e.message ? String(e.message) : '';
     if (e instanceof TypeError || /Failed to fetch|NetworkError|Load failed/i.test(m)) return '連不上雲端，請檢查網路後再試一次。';
-    return '操作失敗：' + (m || '未知錯誤') + '，請稍後再試。';
+    return what + '失敗，請檢查網路後再試一次。' + (m ? '（' + m + '）' : '');
   }
 
-  // 密碼被雲端判定錯誤 → 回登入畫面
-  function backToLogin(msg) {
-    pw = null; clearPw(); questions = []; editingId = null; renamingCat = null; filterCat = '';
-    clearStatus();
-    $('adminView').hidden = true; $('adminView').style.display = 'none';
-    $('loginView').hidden = false;
-    $('pwInput').value = '';
-    var m = $('loginMsg'); m.textContent = msg || ''; m.hidden = !msg;
-    $('pwInput').focus();
-  }
-
-  // 統一的雲端呼叫：進行中鎖住所有按鈕防連點；失敗顯示中文訊息
-  function run(task) {
-    if (busy) return Promise.resolve(undefined);
+  /* ===== 進行中：鎖住所有按鈕防連點，動作鈕顯示轉圈與文字 ===== */
+  function run(btn, busyLabel, what, task) {
+    if (busy) return Promise.resolve();
     busy = true;
-    disabledByBusy = [];
-    var btns = document.querySelectorAll('button');
-    for (var i = 0; i < btns.length; i++) {
-      if (!btns[i].disabled) { btns[i].disabled = true; disabledByBusy.push(btns[i]); }
+    var tk = sess;
+    var locked = [], all = document.querySelectorAll('button');
+    for (var i = 0; i < all.length; i++) if (!all[i].disabled) { all[i].disabled = true; locked.push(all[i]); }
+    var lbl, orig;
+    if (btn) {
+      lbl = btn.querySelector('.lbl'); orig = lbl.textContent; lbl.textContent = busyLabel;
+      btn.classList.add('is-busy');
+      var sp = el('span', 'spin'); btn.insertBefore(sp, btn.firstChild);
+      var oldIcon = btn.querySelector('svg'); if (oldIcon) oldIcon.style.display = 'none';
     }
     return Promise.resolve().then(task).then(function (r) { return r; }, function (e) {
-      if (e && e.invalidPassword) backToLogin('密碼不對或已失效，請重新輸入。');
-      else showStatus('err', errText(e));
-      return undefined;
-    }).then(function (r) {
+      if (tk !== sess) return; // 期間已登出／換過登入，舊的失敗不顯示
+      if (e && e.invalidPassword) backToLogin('密碼已失效，請重新登入');
+      else showToast('err', errText(e, what));
+    }).then(function () {
       busy = false;
-      disabledByBusy.forEach(function (b) { b.disabled = false; });
-      disabledByBusy = [];
-      return r;
+      if (btn) {
+        // 儲存鈕的字樣依目前是否編輯中決定（儲存成功時表單已被重設，不能還原成舊字）
+        lbl.textContent = btn.id === 'saveBtn' ? (editingId !== null ? '儲存修改' : '儲存') : orig; btn.classList.remove('is-busy');
+        var s = btn.querySelector('.spin'); if (s) s.remove();
+        var ic = btn.querySelector('svg'); if (ic) ic.style.display = '';
+      }
+      locked.forEach(function (b) { b.disabled = false; });
+      syncEnabled();
     });
   }
 
-  // 二次確認按鈕：第一次按變成確認字樣，4 秒內沒按就還原
+  /* 二次確認鈕：第一次按變確認字樣，4 秒不按還原 */
   function armButton(btn, label, confirmLabel, action) {
-    var armed = false, timer = null;
-    btn.textContent = label;
+    var armed = false, timer = null, lbl = btn.querySelector('.lbl');
+    lbl.textContent = label;
     btn.addEventListener('click', function () {
       if (!armed) {
-        armed = true; btn.textContent = confirmLabel;
-        timer = setTimeout(function () { armed = false; btn.textContent = label; }, 4000);
+        armed = true; btn.classList.add('armed'); lbl.textContent = confirmLabel;
+        timer = setTimeout(function () { armed = false; btn.classList.remove('armed'); lbl.textContent = label; }, 4000);
         return;
       }
-      armed = false; clearTimeout(timer); btn.textContent = label;
-      action();
+      armed = false; clearTimeout(timer); btn.classList.remove('armed'); lbl.textContent = label;
+      action(btn);
     });
   }
 
-  function categories() {
-    var seen = {}, list = [];
-    questions.forEach(function (q) { if (!seen[q.category]) { seen[q.category] = true; list.push(q.category); } });
-    return list;
+  /* ===== 統計小卡（count-up；尊重 reduced-motion） ===== */
+  function setStat(node, to) {
+    var from = parseInt(node.getAttribute('data-v'), 10) || 0;
+    node.setAttribute('data-v', to);
+    cancelAnimationFrame(node._r);
+    if (reduced || from === to) { node.textContent = to; return; }
+    var t0 = performance.now(), dur = from === 0 ? 1000 : 450;
+    function step(t) {
+      var p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      node.textContent = Math.round(from + (to - from) * e);
+      if (p < 1) node._r = requestAnimationFrame(step);
+    }
+    node._r = requestAnimationFrame(step);
+  }
+  function resetStats() {
+    ['stTotal', 'stCats', 'stDrawn'].forEach(function (id) { cancelAnimationFrame($(id)._r); $(id).setAttribute('data-v', 0); $(id).textContent = '–'; });
+  }
+  function updateStats() {
+    setStat($('stTotal'), questions.length);
+    setStat($('stCats'), names.length);
+    setStat($('stDrawn'), questions.filter(function (q) { return q.drawn; }).length);
   }
 
-  // ---- 載入與渲染 ----
-  function loadList() {
+  /* ===== 畫面切換 ===== */
+  function setLoginMsg(t) {
+    $('loginMsgText').textContent = t || '';
+    $('loginMsg').hidden = !t;
+    $('pwInput').classList.toggle('bad', !!t);
+  }
+  function showLogin(msg) {
+    sess++; formNote = null; formCatName = null; formTouched = false; filterAll = false;
+    pw = null; clearPw(); names = []; questions = []; loaded = false; filterCat = ''; editingId = null; renamingCat = null; flashId = null; formOpen = false;
+    $('toast').hidden = true;
+    // 清掉上一位使用者殘留的畫面：列表、統計、下拉、表單，重新登入後在新資料到之前只會看到載入骨架
+    clear($('listBox')); resetStats(); clear($('filterSelect')); clear($('catSelect')); $('filterField').hidden = true;
+    resetForm(); closeFormMobile(); syncEnabled();
+    $('adminView').hidden = true; $('loginView').hidden = false;
+    $('pwInput').value = ''; setLoginMsg(msg || '');
+  }
+  function backToLogin(msg) { showLogin(msg); $('pwInput').focus(); }
+  function showAdmin() { $('loginView').hidden = true; $('adminView').hidden = false; }
+
+  function syncEnabled() {
+    ['addBtn', 'resetAllBtn', 'saveBtn'].forEach(function (id) { $(id).disabled = !loaded; });
+  }
+
+  /* ===== 載入與渲染 ===== */
+  function showSkeleton() {
+    var box = $('listBox'); clear(box); box.setAttribute('aria-busy', 'true');
+    for (var i = 0; i < 3; i++) box.appendChild(el('div', 'skel'));
+  }
+  function showLoadError(e) {
+    var box = $('listBox'); clear(box); box.setAttribute('aria-busy', 'false');
+    var d = el('div', 'error'); d.setAttribute('role', 'alert');
+    var ic = el('span', 'eico'); ic.innerHTML = svg(P.wifi);
+    d.appendChild(ic); d.appendChild(el('span', 'etitle', '載入不到題庫'));
+    d.appendChild(el('span', null, errText(e, '載入題庫').replace(/再試一次/, '按「重試」')));
+    var r = mkBtn('btn-glass', P.refresh, '重試'); r.id = 'retryBtn';
+    r.addEventListener('click', function () { loadInitial(); });
+    d.appendChild(r); box.appendChild(d);
+    resetStats(); $('filterField').hidden = true; loaded = false; syncEnabled();
+  }
+  // 重新取得題庫並畫面。成功回 true；回應回來時若已登出／換過登入則丟棄並回 STALE；失敗一律往外丟，由呼叫端統一處理
+  function loadList(withSkeleton) {
+    var tk = sess;
+    if (withSkeleton) { loaded = false; syncEnabled(); showSkeleton(); }
     return Api.adminListQuestions(pw).then(function (rows) {
+      if (tk !== sess) return STALE;
+      var prevIdx = names.indexOf(filterCat);
       questions = Array.isArray(rows) ? rows : [];
-      if (filterCat && categories().indexOf(filterCat) === -1) filterCat = '';
-      renderAll();
+      // 分類名單由題目推算（依出現順序，沒有獨立的分類表）
+      names = [];
+      questions.forEach(function (q) { if (names.indexOf(q.category) < 0) names.push(q.category); });
+      loaded = true;
+      // 選到的分類不存在了（例如刪空）→ 切到相鄰分類；沒有分類就清空；選「全部」則維持「全部」
+      if (!filterAll && names.indexOf(filterCat) < 0) filterCat = names.length ? names[Math.max(0, Math.min(prevIdx, names.length - 1))] : '';
+      $('listBox').setAttribute('aria-busy', 'false');
+      animateList = withSkeleton; renderAll(); animateList = false; syncEnabled();
+      return true;
+    }, function (e) {
+      if (tk !== sess) return STALE;
+      throw e;
     });
   }
-
-  function renderAll() { renderSelects(); renderList(); }
-
-  function fillSelect(sel, items, keep) {
-    while (sel.firstChild) sel.removeChild(sel.firstChild);
-    items.forEach(function (it) {
-      var o = el('option', null, it.label); o.value = it.value; sel.appendChild(o);
+  // 登入後／重試的載入：失敗就在這裡處理（密碼失效回登入，其他顯示載入失敗面板）
+  function loadInitial() {
+    return loadList(true).then(null, function (e) {
+      if (e && e.invalidPassword) backToLogin('密碼已失效，請重新登入');
+      else showLoadError(e);
     });
-    var has = items.some(function (it) { return it.value === keep; });
-    if (has) sel.value = keep;
   }
+  // 動作成功後的重載：回 true＝已更新可顯示成功提示；回 false＝重載失敗（已顯示載入失敗面板）或已過期，不要再顯示成功提示；密碼失效則往外丟，交給 run 回登入
+  function reload() {
+    return loadList(false).then(function (r) { return r === true; }, function (e) {
+      if (e && e.invalidPassword) throw e;
+      showLoadError(e);
+      return false;
+    });
+  }
+  function renderAll() { updateStats(); renderFilter(); renderSelect(); renderList(); }
 
-  function renderSelects() {
-    var cats = categories();
-    var f = [{ value: '', label: '全部分類' }];
-    cats.forEach(function (c) { f.push({ value: c, label: c }); });
-    fillSelect($('filterSelect'), f, filterCat);
-
-    var items = cats.map(function (c) { return { value: c, label: c }; });
-    items.push({ value: NEW_CAT, label: '＋ 新增分類…' });
-    var cur = $('catSelect').value;
-    fillSelect($('catSelect'), items, cur);
-    if (!cats.length) $('catSelect').value = NEW_CAT;
+  function renderFilter() {
+    var sel = $('filterSelect'); clear(sel);
+    $('filterField').hidden = !names.length;
+    var oa = el('option', null, '全部分類（' + questions.length + ' 題）'); oa.value = ALL_VAL; sel.appendChild(oa);
+    names.forEach(function (c, i) {
+      var n = questions.filter(function (q) { return q.category === c; }).length;
+      var o = el('option', null, c + '（' + n + ' 題）'); o.value = String(i); sel.appendChild(o);
+    });
+    if (filterAll) sel.value = ALL_VAL;
+    else if (names.indexOf(filterCat) >= 0) sel.value = String(names.indexOf(filterCat));
+  }
+  // 表單分類的預設值：跟著目前篩選的分類，沒有就第一個分類，沒有任何分類就是「新增分類」（null）
+  function defaultFormCat() { return filterCat && names.indexOf(filterCat) >= 0 ? filterCat : (names.length ? names[0] : null); }
+  function applyFormCat(name) {
+    formCatName = name;
+    $('catSelect').value = name === null ? NEW_VAL : String(names.indexOf(name));
     syncNewCat();
   }
-  function syncNewCat() { $('newCatBox').hidden = $('catSelect').value !== NEW_CAT; }
+  // 新增模式且使用者還沒手動選過表單分類時，表單分類才跟著篩選下拉走
+  function syncFormCat() {
+    if (editingId !== null || formTouched) return;
+    applyFormCat(defaultFormCat());
+  }
+
+  // 重建表單分類下拉；使用者已選的分類（或編輯中的分類）保留，只有它已不存在才退回預設並提示
+  function renderSelect() {
+    var sel = $('catSelect');
+    clear(sel);
+    names.forEach(function (c, i) { var o = el('option', null, c); o.value = String(i); sel.appendChild(o); });
+    var o2 = el('option', null, '＋ 新增分類…'); o2.value = NEW_VAL; sel.appendChild(o2);
+    if (editingId !== null || formTouched) {
+      if (formCatName === null || names.indexOf(formCatName) >= 0) applyFormCat(formCatName);
+      else {
+        var fb = names.length ? names[0] : null;
+        formNote = '表單原本選的分類已不存在，已改選' + (fb === null ? '「新增分類」' : '「' + fb + '」') + '。';
+        applyFormCat(fb);
+      }
+    } else applyFormCat(defaultFormCat());
+  }
+  function syncNewCat() { $('newCatBox').hidden = $('catSelect').value !== NEW_VAL; }
 
   function renderList() {
-    var box = $('listBox');
-    while (box.firstChild) box.removeChild(box.firstChild);
-    var cats = categories().filter(function (c) { return !filterCat || c === filterCat; });
-    if (!cats.length) { box.appendChild(el('div', 'empty card glass', '題庫是空的，請先用上面的表單新增題目。')); return; }
-    cats.forEach(function (c) { box.appendChild(renderGroup(c)); });
+    var box = $('listBox'); clear(box);
+    if (!names.length) {
+      var e = el('div', 'empty-lib glass');
+      var ic = el('span', 'eico'); ic.innerHTML = svg(P.tray);
+      e.appendChild(ic); e.appendChild(el('span', 'etitle', '題庫還是空的'));
+      e.appendChild(el('span', 'sub', '新人還沒有題目可以抽，先新增第一題吧。'));
+      var b = mkBtn('btn-primary', P.plus, '新增第一題'); b.addEventListener('click', function () { openForm(true); });
+      e.appendChild(b); box.appendChild(e); return;
+    }
+    if (filterAll) names.forEach(function (c) { box.appendChild(renderGroup(c)); });
+    else box.appendChild(renderGroup(filterCat));
   }
 
   function renderGroup(cat) {
     var items = questions.filter(function (q) { return q.category === cat; });
-    var g = el('section', 'group glass');
+    var drawn = items.filter(function (q) { return q.drawn; }).length;
+    var g = el('section', 'group glass' + (animateList ? ' enter' : ''));
+    var head = el('div', 'g-head');
 
-    var head = el('div', 'group-head');
-    var title = el('div', 'group-title');
-    var h = el('h2', null, cat);
-    h.appendChild(el('span', 'count', '　' + items.length + ' 題'));
-    title.appendChild(h);
-    head.appendChild(title);
+    if (renamingCat === cat) {
+      head.appendChild(renderRenameBox(cat));
+    } else {
+      var tg = el('div', 'g-toggle');
+      var ico = el('span', 'ico'); ico.innerHTML = svg(Object.prototype.hasOwnProperty.call(ICONS, cat) ? ICONS[cat] : FALLBACK_ICON);
+      var txt = el('span', 'gtxt');
+      txt.appendChild(el('span', 'gname', cat));
+      var meta = el('span', 'gmeta');
+      var b1 = el('b', null, String(items.length)), b2 = el('b', null, String(drawn));
+      meta.appendChild(b1); meta.appendChild(document.createTextNode(' 題 · 本輪已抽 ')); meta.appendChild(b2); meta.appendChild(document.createTextNode(' 題'));
+      txt.appendChild(meta);
+      tg.appendChild(ico); tg.appendChild(txt);
+      head.appendChild(tg);
 
-    var acts = el('div', 'group-actions');
-    var renameBtn = el('button', 'btn btn-glass btn-sm', '改名'); renameBtn.type = 'button';
-    renameBtn.addEventListener('click', function () { renamingCat = cat; renderList(); });
-    var resetBtn = el('button', 'btn btn-danger btn-sm'); resetBtn.type = 'button';
-    armButton(resetBtn, '重新洗牌此分類', '再按一次確認（影響所有裝置）', function () { doReset(cat); });
-    acts.appendChild(renameBtn); acts.appendChild(resetBtn);
-    head.appendChild(acts);
-
-    if (renamingCat === cat) head.appendChild(renderRenameBox(cat));
+      var acts = el('div', 'g-actions');
+      var rn = mkBtn('btn-glass btn-sm', P.pencil, '改名');
+      rn.addEventListener('click', function () { renamingCat = cat; renderList(); });
+      var rs = mkBtn('btn-danger btn-sm', P.refresh, '');
+      armButton(rs, '重新洗牌此分類', '再按一次確認（影響所有裝置）', function (b) { doReset(b, cat); });
+      acts.appendChild(rn); acts.appendChild(rs); head.appendChild(acts);
+    }
     g.appendChild(head);
 
-    items.forEach(function (q) { g.appendChild(renderQuestion(q)); });
+    var body = el('div', 'g-body');
+    items.forEach(function (q) { body.appendChild(renderQuestion(q)); });
+    g.appendChild(body);
     return g;
   }
 
   function renderRenameBox(cat) {
     var box = el('div', 'rename-box');
-    var lab = el('label', null, '新的分類名稱'); lab.setAttribute('for', 'renameInput');
-    var inp = el('input'); inp.type = 'text'; inp.id = 'renameInput'; inp.maxLength = 40; inp.value = cat;
-    var warn = el('div', 'msg-bar warn', '這會把兩個分類合併：「' + cat + '」的題目會併入已存在的同名分類。請再按一次確認。');
-    warn.hidden = true;
-    var row = el('div', 'row');
-    var ok = el('button', 'btn btn-primary btn-sm', '確定改名'); ok.type = 'button';
-    var cancel = el('button', 'btn btn-glass btn-sm', '取消'); cancel.type = 'button';
-    var mergeAsked = null; // 已經提示過合併的名稱
-    inp.addEventListener('input', function () { mergeAsked = null; warn.hidden = true; ok.textContent = '確定改名'; });
+    var lab = el('label', null, '「' + cat + '」的新名稱'); lab.setAttribute('for', 'renameInput');
+    var row = el('div', 'rename-row');
+    var inp = el('input', 'input'); inp.type = 'text'; inp.id = 'renameInput'; inp.maxLength = 40; inp.value = cat;
+    var ok = mkBtn('btn-primary btn-sm', P.check, '確定改名');
+    var cancel = mkBtn('btn-glass btn-sm', P.close, '取消');
+    var warn = el('div', 'msg-bar warn'); warn.setAttribute('role', 'alert'); warn.hidden = true;
+    warn.innerHTML = svg(P.alert); var wt = el('span'); warn.appendChild(wt);
+    var err = el('div', 'field-err'); err.setAttribute('role', 'alert'); err.hidden = true; err.innerHTML = svg(P.alert); var et = el('span'); err.appendChild(et);
+    var asked = null;
+    inp.addEventListener('input', function () { asked = null; warn.hidden = true; err.hidden = true; inp.classList.remove('bad'); ok.querySelector('.lbl').textContent = '確定改名'; });
     cancel.addEventListener('click', function () { renamingCat = null; renderList(); });
+    inp.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); ok.click(); } if (ev.key === 'Escape') cancel.click(); });
     ok.addEventListener('click', function () {
       var nv = inp.value.trim();
-      if (!nv) { showStatus('err', '新分類名稱不能空白。'); return; }
+      if (!nv) { et.textContent = '新分類名稱不能空白。'; err.hidden = false; inp.classList.add('bad'); inp.focus(); return; }
       if (nv === cat) { renamingCat = null; renderList(); return; }
-      var exists = categories().indexOf(nv) !== -1;
-      if (exists && mergeAsked !== nv) {
-        mergeAsked = nv;
-        warn.textContent = '這會把兩個分類合併：「' + cat + '」的題目會併入已存在的「' + nv + '」。請再按一次確認。';
-        warn.hidden = false; ok.textContent = '確認合併';
-        return;
+      var exists = names.indexOf(nv) >= 0;
+      if (exists && asked !== nv) {
+        asked = nv;
+        wt.textContent = '這會把兩個分類合併：「' + cat + '」的題目會併入已存在的「' + nv + '」。請再按一次確認。';
+        warn.hidden = false; ok.querySelector('.lbl').textContent = '確認合併'; return;
       }
-      doRename(cat, nv, exists);
+      doRename(ok, cat, nv, exists);
     });
-    row.appendChild(ok); row.appendChild(cancel);
-    box.appendChild(lab); box.appendChild(inp); box.appendChild(warn); box.appendChild(row);
+    row.appendChild(inp); row.appendChild(ok); row.appendChild(cancel);
+    box.appendChild(lab); box.appendChild(row); box.appendChild(err); box.appendChild(warn);
     setTimeout(function () { inp.focus(); inp.select(); }, 0);
     return box;
   }
 
   function renderQuestion(q) {
-    var it = el('div', 'q-item');
+    var it = el('div', 'q-item' + (editingId === q.id ? ' editing' : '') + (flashId === q.id ? ' flash' : ''));
     it.appendChild(el('p', 'q-text', q.text));
     var foot = el('div', 'q-foot');
     if (q.drawn) foot.appendChild(el('span', 'tag', '本輪已抽'));
     foot.appendChild(el('span', 'spacer'));
-    var edit = el('button', 'btn btn-glass btn-sm', '編輯'); edit.type = 'button';
+    var edit = mkBtn('btn-glass btn-sm', P.pencil, '編輯');
     edit.addEventListener('click', function () { startEdit(q); });
-    var del = el('button', 'btn btn-danger btn-sm'); del.type = 'button';
-    armButton(del, '刪除', '再按一次確認刪除', function () { doDelete(q); });
-    foot.appendChild(edit); foot.appendChild(del);
-    it.appendChild(foot);
+    var del = mkBtn('btn-danger btn-sm', P.trash, '');
+    armButton(del, '刪除', '再按一次確認刪除', function (b) { doDelete(b, q); });
+    foot.appendChild(edit); foot.appendChild(del); it.appendChild(foot);
     return it;
   }
 
-  // ---- 動作 ----
+  /* ===== 表單 ===== */
+  function openForm(focusText) {
+    formOpen = true; $('formCol').setAttribute('data-open', 'true');
+    if (!isDesktop()) $('formCol').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    if (focusText) $('textInput').focus({ preventScroll: true });
+  }
+  function closeFormMobile() { formOpen = false; $('formCol').setAttribute('data-open', 'false'); }
+  function updateCount() { $('textCount').textContent = $('textInput').value.length + ' 字'; }
+  function hideErrs() {
+    ['catErr', 'textErr'].forEach(function (id) { $(id).hidden = true; });
+    $('textInput').classList.remove('bad'); $('newCatInput').classList.remove('bad');
+  }
+  function setFormMode(edit, q) {
+    $('qForm').classList.toggle('is-edit', edit);
+    $('formTitle').textContent = edit ? '編輯題目' : '新增題目';
+    $('formIcon').innerHTML = edit ? P.pencil : P.plus;
+    $('saveBtn').querySelector('.lbl').textContent = edit ? '儲存修改' : '儲存';
+    $('cancelBtn').querySelector('.lbl').textContent = edit ? '取消編輯' : '取消';
+    $('editNote').hidden = !edit;
+    if (edit) { $('editNoteK').textContent = '正在編輯「' + q.category + '」的這一題'; $('editNoteQ').textContent = q.text; }
+  }
   function startEdit(q) {
-    editingId = q.id;
-    $('formTitle').textContent = '編輯題目';
-    $('catSelect').value = q.category;
-    syncNewCat();
-    $('textInput').value = q.text;
-    $('cancelEditBtn').hidden = false;
-    $('saveBtn').textContent = '儲存修改';
-    $('formTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    $('textInput').focus();
+    editingId = q.id; setFormMode(true, q); hideErrs();
+    applyFormCat(q.category);
+    $('textInput').value = q.text; updateCount();
+    renderList(); openForm(true);
   }
   function resetForm() {
-    editingId = null;
-    $('formTitle').textContent = '新增題目';
-    $('textInput').value = ''; $('newCatInput').value = '';
-    $('cancelEditBtn').hidden = true;
-    $('saveBtn').textContent = '儲存題目';
-    syncNewCat();
+    editingId = null; formTouched = false; setFormMode(false); hideErrs();
+    $('textInput').value = ''; $('newCatInput').value = ''; updateCount(); syncFormCat();
   }
 
+  /* ===== 動作 ===== */
   function doSave() {
-    var cat = $('catSelect').value === NEW_CAT ? $('newCatInput').value.trim() : $('catSelect').value;
+    hideErrs();
+    var cat = formCatName === null ? $('newCatInput').value.trim() : formCatName;
     var text = $('textInput').value.trim();
-    if (!cat) { showStatus('err', '請選擇分類，或輸入新分類名稱。'); return; }
-    if (!text) { showStatus('err', '題目內容不能空白。'); return; }
+    var bad = false;
+    if (!cat) { $('catErr').lastChild.textContent = '請輸入新分類名稱。'; $('catErr').hidden = false; $('newCatInput').classList.add('bad'); bad = 'cat'; }
+    if (!text) { $('textErr').lastChild.textContent = '題目內容不能空白。'; $('textErr').hidden = false; $('textInput').classList.add('bad'); bad = bad || 'text'; }
+    if (bad) { (bad === 'cat' ? $('newCatInput') : $('textInput')).focus(); return; }
     var wasEdit = editingId !== null;
-    run(function () {
+    var tk = sess;
+    run($('saveBtn'), '儲存中…', '儲存', function () {
       return Api.adminSaveQuestion(pw, editingId, cat, text).then(function () {
-        resetForm();
-        return loadList();
-      }).then(function () { showStatus('ok', wasEdit ? '已儲存修改。' : '已新增題目。'); });
+        if (tk !== sess) return false;
+        filterAll = false; filterCat = cat; flashId = wasEdit ? editingId : null; // 儲存後切到該題所屬分類；編輯的題目短暫高亮
+        resetForm(); if (!isDesktop()) closeFormMobile();
+        return reload().then(function (ok) {
+          if (ok && flashId !== null) { var fl = document.querySelector('.q-item.flash'); if (fl) fl.scrollIntoView({ block: 'nearest' }); }
+          flashId = null;
+          return ok;
+        });
+      }).then(function (ok) { if (ok) showToast('ok', wasEdit ? '已儲存修改。' : '已新增題目。'); });
     });
   }
-  function doDelete(q) {
-    run(function () {
+  function doDelete(btn, q) {
+    var tk = sess;
+    run(btn, '刪除中…', '刪除', function () {
       return Api.adminDeleteQuestion(pw, q.id).then(function () {
-        if (editingId === q.id) resetForm();
-        return loadList();
-      }).then(function () { showStatus('ok', '已刪除題目。'); });
+        if (tk !== sess) return false;
+        if (editingId === q.id) { resetForm(); if (!isDesktop()) closeFormMobile(); }
+        return reload();
+      }).then(function (ok) { if (ok) showToast('ok', '已刪除題目。'); });
     });
   }
-  function doRename(oldName, newName, merged) {
-    run(function () {
+  function doRename(btn, oldName, newName, merged) {
+    var tk = sess;
+    run(btn, merged ? '合併中…' : '改名中…', merged ? '合併分類' : '改名', function () {
       return Api.adminRenameCategory(pw, oldName, newName).then(function (n) {
+        if (tk !== sess) return;
         renamingCat = null;
         if (filterCat === oldName) filterCat = newName;
-        return loadList().then(function () {
-          showStatus('ok', (merged ? '已合併分類' : '已改名') + '，共 ' + (n == null ? '' : n + ' ') + '題受影響。');
+        if (formCatName === oldName) formCatName = newName; // 表單選的正是被改名的分類，跟著改
+        return reload().then(function (ok) {
+          if (ok) showToast('ok', (merged ? '已合併分類' : '已改名') + '，共 ' + (n == null ? '' : n + ' ') + '題受影響。');
         });
       });
     });
   }
-  function doReset(cat) {
-    run(function () {
-      return Api.adminReset(pw, cat).then(loadList).then(function () {
-        showStatus('ok', cat ? '已重新洗牌「' + cat + '」，所有裝置都會重新開始抽。' : '已全部重新洗牌，所有裝置都會重新開始抽。');
+  function doReset(btn, cat) {
+    var tk = sess;
+    run(btn, '洗牌中…', '洗牌', function () {
+      return Api.adminReset(pw, cat).then(function () { return tk === sess && reload(); }).then(function (ok) {
+        if (ok) showToast('ok', cat ? '已重新洗牌「' + cat + '」，所有裝置都會重新開始抽。' : '已全部重新洗牌，所有裝置都會重新開始抽。');
       });
     });
   }
 
-  // ---- 事件 ----
+  /* ===== 事件 ===== */
+  $('qForm').addEventListener('submit', function (ev) { ev.preventDefault(); doSave(); });
+  $('filterSelect').addEventListener('change', function () {
+    var v = $('filterSelect').value;
+    filterAll = v === ALL_VAL; filterCat = filterAll ? '' : names[parseInt(v, 10)];
+    renamingCat = null; syncFormCat(); renderList();
+  });
+  $('catSelect').addEventListener('change', function () {
+    var v = $('catSelect').value;
+    formTouched = true; formCatName = v === NEW_VAL ? null : names[parseInt(v, 10)];
+    syncNewCat(); if (!$('newCatBox').hidden) $('newCatInput').focus(); });
+  $('textInput').addEventListener('input', function () { updateCount(); if (!$('textErr').hidden) { $('textErr').hidden = true; $('textInput').classList.remove('bad'); } });
+  $('newCatInput').addEventListener('input', function () { $('catErr').hidden = true; $('newCatInput').classList.remove('bad'); });
+  $('cancelBtn').addEventListener('click', function () {
+    var wasEdit = editingId !== null;
+    resetForm(); if (wasEdit) renderList();
+    if (!isDesktop()) closeFormMobile();
+  });
+  $('addBtn').addEventListener('click', function () {
+    if (editingId !== null) { resetForm(); renderList(); }
+    openForm(true);
+  });
+  $('logoutBtn').addEventListener('click', function () { showLogin(''); $('pwInput').focus(); });
+  armButton($('resetAllBtn'), '全部重新洗牌', '再按一次確認（影響所有裝置）', function (b) { doReset(b, null); });
+  $('resetAllBtn').insertAdjacentHTML('afterbegin', svg(P.refresh));
+  $('addBtn').insertAdjacentHTML('afterbegin', svg(P.plus));
+  $('pwInput').addEventListener('input', function () { if (!$('loginMsg').hidden) setLoginMsg(''); });
+
   $('loginForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var typed = $('pwInput').value;
-    if (!typed) { var m = $('loginMsg'); m.textContent = '請輸入密碼。'; m.hidden = false; return; }
-    run(function () {
-      return Api.adminLogin(typed).then(function (ok) {
-        if (ok !== true) { var m2 = $('loginMsg'); m2.textContent = '密碼不對'; m2.hidden = false; $('pwInput').value = ''; return; }
-        pw = typed; savePw(typed); $('pwInput').value = ''; $('loginMsg').hidden = true;
-        $('loginView').hidden = true;
-        $('adminView').hidden = false; $('adminView').style.display = 'flex';
-        clearStatus();
-        return loadList();
-      });
+    if (!typed) { setLoginMsg('請輸入密碼'); return; }
+    setLoginMsg('');
+    var btn = $('loginBtn'), lbl = btn.querySelector('.lbl');
+    btn.disabled = true; lbl.textContent = '驗證中…'; btn.classList.add('is-busy'); btn.insertBefore(el('span', 'spin'), lbl);
+    Api.adminLogin(typed).then(function (ok) {
+      if (ok !== true) { setLoginMsg('密碼不對'); $('pwInput').value = ''; $('pwInput').focus(); return; }
+      sess++; pw = typed; savePw(typed); $('pwInput').value = ''; showAdmin(); resetForm(); return loadInitial();
+    }).catch(function (e) {
+      if (e && e.invalidPassword) { setLoginMsg('密碼不對'); $('pwInput').value = ''; $('pwInput').focus(); }
+      else setLoginMsg('登入失敗，請檢查網路後再按「進入」重試。');
     }).then(function () {
-      // 登入失敗訊息的網路錯誤走 run 的統一處理；這裡把它同步到登入畫面
-      if (pw === null && !$('statusBar').hidden && $('statusBar').classList.contains('err')) {
-        var m3 = $('loginMsg'); m3.textContent = $('statusBar').textContent; m3.hidden = false;
-      }
+      btn.disabled = false; lbl.textContent = '進入'; btn.classList.remove('is-busy'); var s = btn.querySelector('.spin'); if (s) s.remove();
     });
   });
-  $('catSelect').addEventListener('change', syncNewCat);
-  $('filterSelect').addEventListener('change', function () { filterCat = $('filterSelect').value; renamingCat = null; renderList(); });
-  $('qForm').addEventListener('submit', function (ev) { ev.preventDefault(); doSave(); });
-  $('cancelEditBtn').addEventListener('click', resetForm);
-  $('logoutBtn').addEventListener('click', function () { backToLogin(''); });
-  armButton($('resetAllBtn'), '全部重新洗牌', '再按一次確認（影響所有裝置）', function () { doReset(null); });
 
-  $('adminView').style.display = 'none';
-  $('pwInput').focus();
-
+  setFormMode(false); updateCount();
   // 載入時若 sessionStorage 已有密碼 → 先驗證，通過就直接進管理畫面
   var saved = readPw();
+  showLogin('');
   if (saved) {
-    run(function () {
-      return Api.adminLogin(saved).then(function (ok) {
-        if (ok !== true) { clearPw(); return; }
-        pw = saved;
-        $('loginView').hidden = true;
-        $('adminView').hidden = false; $('adminView').style.display = 'flex';
-        return loadList();
-      });
+    savePw(saved); // showLogin 會清掉儲存的密碼，這裡先還原，驗證不過才真的清除
+    var lb = $('loginBtn'), ll = lb.querySelector('.lbl');
+    lb.disabled = true; ll.textContent = '驗證中…'; lb.classList.add('is-busy'); lb.insertBefore(el('span', 'spin'), ll);
+    Api.adminLogin(saved).then(function (ok) {
+      if (ok !== true) { clearPw(); return; }
+      sess++; pw = saved; showAdmin(); resetForm(); return loadInitial();
+    }).catch(function (e) {
+      if (e && e.invalidPassword) clearPw();
+      else setLoginMsg('登入失敗，請檢查網路後再重新整理或輸入密碼。');
     }).then(function () {
-      // 網路錯誤時 run 已顯示在 statusBar（隱藏中），同步到登入畫面
-      if (pw === null && !$('statusBar').hidden && $('statusBar').classList.contains('err')) {
-        var m = $('loginMsg'); m.textContent = $('statusBar').textContent; m.hidden = false;
-      }
+      lb.disabled = false; ll.textContent = '進入'; lb.classList.remove('is-busy'); var s = lb.querySelector('.spin'); if (s) s.remove();
     });
-  }
+  } else $('pwInput').focus();
 })();
 </script>
 </body>
