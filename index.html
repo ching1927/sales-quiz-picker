@@ -9,10 +9,36 @@
   /* 只使用 tokens.css 的變數，不自訂新色 */
   .page{max-width:640px;margin:0 auto;padding:var(--sp-6) var(--sp-4) var(--sp-8);min-height:100vh;display:flex;flex-direction:column;gap:var(--sp-4)}
   h1{font-size:24px;font-weight:700;letter-spacing:.02em;text-align:center;padding:var(--sp-4) 0 var(--sp-2)}
-  .count{text-align:center;color:var(--ink-2);font-size:15px}
-  .count b{font-family:var(--mono);color:var(--ink);font-size:20px}
+  .card{padding:var(--sp-6);display:flex;flex-direction:column;justify-content:center;gap:var(--sp-4)}
 
-  .card{padding:var(--sp-6);min-height:220px;display:flex;flex-direction:column;justify-content:center;gap:var(--sp-4)}
+  /* 分類勾選區 */
+  .picker-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);color:var(--ink-2);font-size:15px;font-weight:600}
+  .link-btn{font-family:var(--font);font-size:14px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-pill);min-height:36px}
+  .link-btn:hover{background:var(--accent-soft)}
+  .link-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .link-btn[disabled]{color:var(--ink-3);cursor:not-allowed;background:none}
+  .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--sp-3)}
+  .chip{font-family:var(--font);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:var(--sp-1);min-height:64px;padding:var(--sp-3) var(--sp-4);
+    color:var(--ink);background:var(--glass-bg-strong);border:none;border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline);
+    transition:transform var(--dur-micro) var(--ease),box-shadow var(--dur-micro) var(--ease),background var(--dur-micro) var(--ease)}
+  .chip:active{transform:scale(.97)}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .chip .name{font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2)}
+  .chip .name svg{width:20px;height:20px;opacity:0;stroke-width:3}
+  .chip .num{font-size:13px;color:var(--ink-2);font-family:var(--mono)}
+  .chip[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-deep);box-shadow:0 0 0 2px var(--accent)}
+  .chip[aria-pressed="true"] .name svg{opacity:1}
+  .chip[aria-pressed="true"] .num{color:var(--accent-deep)}
+  .skel{height:64px;border-radius:var(--r-ctrl);background:linear-gradient(90deg,var(--skeleton-base),var(--skeleton-sheen),var(--skeleton-base));background-size:200% 100%;animation:sheen 1.4s linear infinite}
+  @keyframes sheen{from{background-position:200% 0}to{background-position:-200% 0}}
+  .error{display:flex;flex-direction:column;align-items:center;gap:var(--sp-3);text-align:center;color:var(--danger);background:var(--danger-soft);border-radius:var(--r-ctrl);padding:var(--sp-4);font-size:15px;line-height:1.6}
+
+  .error[hidden]{display:none}
+
+  /* 結果卡片 */
+  .results{display:flex;flex-direction:column;gap:var(--sp-4)}
+  .q-card{gap:var(--sp-3)}
+  .q-card .btn-glass{flex:none;align-self:flex-start;min-height:44px;padding:var(--sp-2) var(--sp-4);font-size:15px}
   .tag{align-self:flex-start;background:var(--accent-soft);color:var(--accent-deep);font-weight:600;font-size:14px;padding:var(--sp-1) var(--sp-3);border-radius:var(--r-pill)}
   .msg{font-size:22px;line-height:1.7;font-weight:500;word-break:break-word;white-space:pre-wrap}
   .empty{color:var(--ink-2);font-size:17px;line-height:1.7;text-align:center}
@@ -33,123 +59,175 @@
   svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
   footer{margin-top:auto;text-align:center;color:var(--ink-3);font-size:13px;padding-top:var(--sp-6)}
+  footer .link-btn{color:var(--ink-3);font-size:13px;text-decoration:underline}
   @media (max-width:400px){.msg{font-size:20px}h1{font-size:22px}}
 </style>
 </head>
 <body>
 <main class="page">
   <h1>新人業務考題抽選器</h1>
-  <div class="count" aria-live="polite">本輪剩餘 <b id="remain">-</b> / 共 <b id="total">-</b> 題</div>
 
-  <section class="card glass" aria-live="polite">
-    <div id="notice" class="notice" hidden></div>
-    <div id="empty" class="empty">按下面的「抽一題」，<br>抽出一則客人傳來的訊息。</div>
-    <div id="question" hidden>
-      <span class="tag" id="cat"></span>
-      <p class="msg" id="text"></p>
+  <section class="card glass" aria-label="選擇分類">
+    <div class="picker-head">
+      <span>選擇要考的分類</span>
+      <span>
+        <button class="link-btn" id="allBtn" type="button" disabled>全選</button>
+        <button class="link-btn" id="noneBtn" type="button" disabled>全不選</button>
+      </span>
+    </div>
+    <div id="chips" class="chips" aria-busy="true"></div>
+    <div id="loadError" class="error" role="alert" hidden>
+      <span id="loadErrorText"></span>
+      <button class="btn btn-glass" id="retryBtn" type="button">重試</button>
     </div>
   </section>
 
-  <button class="btn btn-primary" id="drawBtn" type="button">
+  <button class="btn btn-primary" id="drawBtn" type="button" disabled>
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
-    抽一題
+    <span id="drawLabel">載入中…</span>
   </button>
 
-  <div class="row">
-    <button class="btn btn-glass" id="copyBtn" type="button" disabled>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>
-      <span id="copyLabel">複製題目</span>
-    </button>
-    <button class="btn btn-danger" id="resetBtn" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>
-      <span id="resetLabel">重新洗牌</span>
-    </button>
+  <div id="drawError" class="error" role="alert" hidden>
+    <span id="drawErrorText"></span>
+    <button class="btn btn-glass" id="drawRetryBtn" type="button">重試</button>
   </div>
 
-  <footer>由 貳輪嶼 製作</footer>
+  <div id="results" class="results" aria-live="polite"></div>
+
+  <footer>
+    由 貳輪嶼 製作<br>
+    <a class="link-btn" href="admin.html">管理題庫</a>
+  </footer>
 </main>
 
-<script src="questions.js"></script>
+<script src="js/api.js"></script>
 <script>
 (function () {
-  var KEY = 'examPicker.v1';
-  var questions = Array.isArray(window.QUESTIONS) ? window.QUESTIONS : [];
-  var allIds = questions.map(function (q) { return q.id; });
-  var byId = {};
-  questions.forEach(function (q) { byId[q.id] = q; });
-
-  var state = { drawn: [], current: null };
-  var memoryOk = true; // localStorage 不可用時只在記憶體中運作
-
-  function load() {
-    try {
-      var raw = localStorage.getItem(KEY);
-      if (raw) {
-        var s = JSON.parse(raw);
-        if (s && Array.isArray(s.drawn)) state.drawn = s.drawn;
-        if (s && s.current != null) state.current = s.current;
-      }
-    } catch (e) { memoryOk = false; }
-    // 容錯：忽略已不存在的 id，並去除重複
-    var seen = {};
-    state.drawn = state.drawn.filter(function (id) {
-      if (!byId[id] || seen[id]) return false;
-      seen[id] = true; return true;
-    });
-    if (!byId[state.current]) state.current = null;
-  }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { memoryOk = false; }
-  }
-
   var $ = function (id) { return document.getElementById(id); };
-  var noticeTimer = null;
+  var categories = [];      // 雲端回傳的分類清單 [{category,total,remaining}]
+  var selected = {};        // 已勾選的分類名稱
+  var drawing = false;      // 抽題進行中（防連點）
+  var loaded = false;       // 分類是否載入成功
 
-  function showNotice(msg) {
-    var n = $('notice');
-    n.textContent = msg; n.hidden = false;
-    clearTimeout(noticeTimer);
-    noticeTimer = setTimeout(function () { n.hidden = true; }, 5000);
-  }
-  function hideNotice() { clearTimeout(noticeTimer); $('notice').hidden = true; }
+  var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
-  function render() {
-    $('total').textContent = allIds.length;
-    $('remain').textContent = allIds.length - state.drawn.length;
-    var q = byId[state.current];
-    $('empty').hidden = !!q;
-    $('question').hidden = !q;
-    $('copyBtn').disabled = !q;
-    if (q) { $('cat').textContent = q.category; $('text').textContent = q.text; }
-    if (!allIds.length) $('empty').textContent = '題庫是空的，請先在 questions.js 加題。';
-    $('drawBtn').disabled = !allIds.length;
+  function errText(e, what) {
+    var m = e && e.message ? e.message : '';
+    return what + '失敗，請檢查網路後按「重試」。' + (m ? '（' + m + '）' : '');
   }
 
-  function draw() {
-    if (!allIds.length) return;
-    hideNotice();
-    var started = false;
-    if (state.drawn.length >= allIds.length) { state.drawn = []; started = true; }
-    var pool = allIds.filter(function (id) { return state.drawn.indexOf(id) === -1; });
-    // 剛開新一輪時，避免第一題與上一輪最後一題相同
-    if (started && pool.length > 1) {
-      pool = pool.filter(function (id) { return id !== state.current; });
+  function selectedList() {
+    // 依畫面上分類順序回傳已勾選者
+    return categories.filter(function (c) { return selected[c.category]; }).map(function (c) { return c.category; });
+  }
+
+  function updateDrawBtn() {
+    var n = selectedList().length;
+    var btn = $('drawBtn');
+    if (!loaded) { btn.disabled = true; $('drawLabel').textContent = '載入中…'; return; }
+    if (drawing) { btn.disabled = true; $('drawLabel').textContent = '抽題中…'; return; }
+    btn.disabled = n === 0;
+    $('drawLabel').textContent = n === 0 ? '請先選分類' : '抽 ' + n + ' 題';
+    $('allBtn').disabled = $('noneBtn').disabled = !categories.length;
+  }
+
+  function renderChips() {
+    var box = $('chips');
+    box.innerHTML = '';
+    categories.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip';
+      b.setAttribute('aria-pressed', selected[c.category] ? 'true' : 'false');
+      var name = document.createElement('span'); name.className = 'name';
+      var label = document.createElement('span'); label.textContent = c.category;
+      name.appendChild(label); name.insertAdjacentHTML('beforeend', CHECK_SVG);
+      var num = document.createElement('span'); num.className = 'num';
+      num.textContent = '剩餘 ' + c.remaining + ' / 共 ' + c.total;
+      b.appendChild(name); b.appendChild(num);
+      b.addEventListener('click', function () {
+        selected[c.category] = !selected[c.category];
+        b.setAttribute('aria-pressed', selected[c.category] ? 'true' : 'false');
+        updateDrawBtn();
+      });
+      box.appendChild(b);
+    });
+    if (!categories.length) {
+      var e = document.createElement('div'); e.className = 'empty'; e.style.gridColumn = '1 / -1';
+      e.textContent = '題庫還沒有任何題目，請先到「管理題庫」新增。';
+      box.appendChild(e);
     }
-    var id = pool[Math.floor(Math.random() * pool.length)];
-    state.drawn.push(id);
-    state.current = id;
-    save(); render(); resetCopy();
-    if (started) showNotice('上一輪抽完了，已開始新的一輪。');
-    else if (state.drawn.length >= allIds.length) showNotice('這一輪抽完了！再按「抽一題」會開始新的一輪。');
   }
 
-  // 複製
-  var copyTimer = null;
-  function resetCopy() {
-    clearTimeout(copyTimer);
-    $('copyLabel').textContent = '複製題目';
-    $('copyBtn').classList.remove('btn-done');
+  function showSkeleton() {
+    var box = $('chips');
+    box.innerHTML = ''; box.setAttribute('aria-busy', 'true');
+    for (var i = 0; i < 4; i++) { var s = document.createElement('div'); s.className = 'skel'; box.appendChild(s); }
   }
+
+  // 載入分類；keepSelection=true 時（抽完刷新）保留勾選
+  function loadCategories(keepSelection) {
+    $('loadError').hidden = true;
+    if (!keepSelection) { loaded = false; selected = {}; showSkeleton(); }
+    updateDrawBtn();
+    return Api.listCategories().then(function (list) {
+      categories = Array.isArray(list) ? list : [];
+      var next = {};
+      categories.forEach(function (c) { if (selected[c.category]) next[c.category] = true; });
+      selected = next;
+      loaded = true;
+      $('chips').setAttribute('aria-busy', 'false');
+      renderChips(); updateDrawBtn();
+    }).catch(function (e) {
+      if (keepSelection) return; // 刷新失敗不打斷畫面，抽題結果仍已顯示
+      $('chips').innerHTML = ''; $('chips').setAttribute('aria-busy', 'false');
+      $('loadErrorText').textContent = errText(e, '載入分類');
+      $('loadError').hidden = false;
+      updateDrawBtn();
+    });
+  }
+
+  // 抽題
+  function draw() {
+    var cats = selectedList();
+    if (drawing || !cats.length) return;
+    drawing = true; $('drawError').hidden = true; updateDrawBtn();
+    Api.drawQuestions(cats).then(function (rows) {
+      renderResults(Array.isArray(rows) ? rows : []);
+      // 以回傳值先更新剩餘數，再重新向雲端確認
+      (Array.isArray(rows) ? rows : []).forEach(function (r) {
+        categories.forEach(function (c) {
+          if (c.category === r.category) { c.remaining = r.remaining; c.total = r.total; }
+        });
+      });
+      renderChips();
+      return loadCategories(true);
+    }).catch(function (e) {
+      $('drawErrorText').textContent = errText(e, '抽題');
+      $('drawError').hidden = false;
+    }).then(function () { drawing = false; updateDrawBtn(); });
+  }
+
+  function renderResults(rows) {
+    var box = $('results');
+    box.innerHTML = '';
+    rows.forEach(function (r) {
+      var card = document.createElement('section'); card.className = 'card glass q-card';
+      if (r.new_round) {
+        var n = document.createElement('div'); n.className = 'notice';
+        n.textContent = '此分類已開始新的一輪'; card.appendChild(n);
+      }
+      var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = r.category;
+      var msg = document.createElement('p'); msg.className = 'msg'; msg.textContent = r.text;
+      var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-glass';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span class="lbl">複製題目</span>';
+      btn.addEventListener('click', function () { copyQuestion(btn, r.text); });
+      card.appendChild(tag); card.appendChild(msg); card.appendChild(btn);
+      box.appendChild(card);
+    });
+    if (rows.length) box.firstChild.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
+  }
+
+  // 複製（每張卡各自的按鈕與回饋）
   function copyFallback(text) {
     var ta = document.createElement('textarea');
     ta.value = text; ta.setAttribute('readonly', '');
@@ -160,49 +238,36 @@
     document.body.removeChild(ta);
     return ok;
   }
-  function copyDone(ok) {
-    $('copyLabel').textContent = ok ? '已複製' : '複製失敗，請長按文字手動複製';
-    $('copyBtn').classList.toggle('btn-done', ok);
-    clearTimeout(copyTimer);
-    copyTimer = setTimeout(resetCopy, 2000);
+  function copyDone(btn, ok) {
+    var lbl = btn.querySelector('.lbl');
+    lbl.textContent = ok ? '已複製' : '複製失敗，請長按文字手動複製';
+    btn.classList.toggle('btn-done', ok);
+    clearTimeout(btn._t);
+    btn._t = setTimeout(function () { lbl.textContent = '複製題目'; btn.classList.remove('btn-done'); }, 2000);
   }
-  function copyQuestion() {
-    var q = byId[state.current];
-    if (!q) return;
+  function copyQuestion(btn, text) {
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(q.text).then(
-        function () { copyDone(true); },
-        function () { copyDone(copyFallback(q.text)); }
+      navigator.clipboard.writeText(text).then(
+        function () { copyDone(btn, true); },
+        function () { copyDone(btn, copyFallback(text)); }
       );
     } else {
-      copyDone(copyFallback(q.text));
+      copyDone(btn, copyFallback(text));
     }
   }
 
-  // 重新洗牌（二次確認：第一次按變成「再按一次確認」，4 秒內沒按就還原）
-  var resetTimer = null, resetArmed = false;
-  function disarmReset() {
-    resetArmed = false; clearTimeout(resetTimer);
-    $('resetLabel').textContent = '重新洗牌';
-  }
-  function resetClick() {
-    if (!resetArmed) {
-      resetArmed = true;
-      $('resetLabel').textContent = '再按一次確認洗牌';
-      resetTimer = setTimeout(disarmReset, 4000);
-      return;
-    }
-    disarmReset();
-    state = { drawn: [], current: null };
-    save(); render(); resetCopy(); hideNotice();
-    showNotice('已重新洗牌，所有題目都可以再抽。');
+  function setAll(on) {
+    categories.forEach(function (c) { selected[c.category] = on; });
+    renderChips(); updateDrawBtn();
   }
 
   $('drawBtn').addEventListener('click', draw);
-  $('copyBtn').addEventListener('click', copyQuestion);
-  $('resetBtn').addEventListener('click', resetClick);
+  $('drawRetryBtn').addEventListener('click', draw);
+  $('retryBtn').addEventListener('click', function () { loadCategories(false); });
+  $('allBtn').addEventListener('click', function () { setAll(true); });
+  $('noneBtn').addEventListener('click', function () { setAll(false); });
 
-  load(); render();
+  loadCategories(false);
 })();
 </script>
 </body>
