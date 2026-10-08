@@ -58,6 +58,21 @@
   .row{display:flex;gap:var(--sp-3)}
   svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
+  /* 登入畫面（沿用 admin.html 登入畫面的外觀） */
+  #appView{display:flex;flex-direction:column;gap:var(--sp-4)}
+  #appView[hidden],#loginView[hidden]{display:none}
+  .hint{color:var(--ink-2);font-size:14px;line-height:1.6}
+  .field{display:flex;flex-direction:column}
+  label{font-size:14px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:var(--sp-1)}
+  input[type=password]{font-family:var(--font);font-size:16px;color:var(--ink);width:100%;min-height:48px;
+    padding:var(--sp-3) var(--sp-4);background:var(--glass-bg-strong);border:none;border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline)}
+  input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .msg-bar{border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);font-size:15px;line-height:1.6;font-weight:600}
+  .msg-bar.err{background:var(--danger-soft);color:var(--danger)}
+  .msg-bar[hidden]{display:none}
+  .btn[disabled]{cursor:not-allowed;opacity:.55}
+  #loginBtn{font-size:16px;min-height:48px;width:auto;padding:var(--sp-2) var(--sp-6)}
+
   footer{margin-top:auto;text-align:center;color:var(--ink-3);font-size:13px;padding-top:var(--sp-6)}
   footer .link-btn{color:var(--ink-3);font-size:13px;text-decoration:underline}
   @media (max-width:400px){.msg{font-size:20px}h1{font-size:22px}}
@@ -67,6 +82,20 @@
 <main class="page">
   <h1>新人業務考題抽選器</h1>
 
+  <!-- 登入關卡：登入成功前，下面的抽題畫面（appView）一律隱藏 -->
+  <section id="loginView" class="card glass" hidden>
+    <p class="hint">請輸入密碼才能抽題。密碼只留在這個分頁，關掉分頁就要重新輸入。</p>
+    <div id="loginMsg" class="msg-bar err" role="alert" hidden></div>
+    <form id="loginForm" class="field" autocomplete="off">
+      <label for="pwInput">密碼</label>
+      <input type="password" id="pwInput" autocomplete="off">
+      <div class="row" style="margin-top:var(--sp-4)">
+        <button class="btn btn-primary" id="loginBtn" type="submit">進入</button>
+      </div>
+    </form>
+  </section>
+
+  <div id="appView" hidden>
   <section class="card glass" aria-label="選擇分類">
     <div class="picker-head">
       <span>選擇要考的分類</span>
@@ -93,6 +122,7 @@
   </div>
 
   <div id="results" class="results" aria-live="polite"></div>
+  </div>
 
   <footer>
     由 貳輪嶼 製作<br>
@@ -108,6 +138,24 @@
   var selected = {};        // 已勾選的分類名稱
   var drawing = false;      // 抽題進行中（防連點）
   var loaded = false;       // 分類是否載入成功
+  var PW_KEY = 'quiz_pw';   // 與管理頁共用的 sessionStorage 鍵
+  var pw = null;            // 目前密碼（sessionStorage 不可用時只活在這個變數）
+
+  function readPw() { try { return sessionStorage.getItem(PW_KEY); } catch (e) { return null; } }
+  function savePw(v) { try { sessionStorage.setItem(PW_KEY, v); } catch (e) { /* 不可用就只留記憶體 */ } }
+  function clearPw() { try { sessionStorage.removeItem(PW_KEY); } catch (e) {} }
+
+  function showLogin(msg) {
+    pw = null; clearPw();
+    categories = []; selected = {}; loaded = false; drawing = false;
+    $('results').innerHTML = ''; $('chips').innerHTML = ''; $('drawError').hidden = true; $('loadError').hidden = true;
+    $('appView').hidden = true; $('loginView').hidden = false;
+    $('pwInput').value = '';
+    var m = $('loginMsg'); m.textContent = msg || ''; m.hidden = !msg;
+    $('loginBtn').disabled = false;
+    $('pwInput').focus();
+  }
+  function showApp() { $('loginView').hidden = true; $('appView').hidden = false; }
 
   var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
@@ -169,7 +217,7 @@
     $('loadError').hidden = true;
     if (!keepSelection) { loaded = false; selected = {}; showSkeleton(); }
     updateDrawBtn();
-    return Api.listCategories().then(function (list) {
+    return Api.listCategories(pw).then(function (list) {
       categories = Array.isArray(list) ? list : [];
       var next = {};
       categories.forEach(function (c) { if (selected[c.category]) next[c.category] = true; });
@@ -178,6 +226,7 @@
       $('chips').setAttribute('aria-busy', 'false');
       renderChips(); updateDrawBtn();
     }).catch(function (e) {
+      if (e && e.invalidPassword) { showLogin('密碼已失效，請重新登入'); return; }
       if (keepSelection) return; // 刷新失敗不打斷畫面，抽題結果仍已顯示
       $('chips').innerHTML = ''; $('chips').setAttribute('aria-busy', 'false');
       $('loadErrorText').textContent = errText(e, '載入分類');
@@ -191,7 +240,7 @@
     var cats = selectedList();
     if (drawing || !cats.length) return;
     drawing = true; $('drawError').hidden = true; updateDrawBtn();
-    Api.drawQuestions(cats).then(function (rows) {
+    Api.drawQuestions(pw, cats).then(function (rows) {
       renderResults(Array.isArray(rows) ? rows : []);
       // 以回傳值先更新剩餘數，再重新向雲端確認
       (Array.isArray(rows) ? rows : []).forEach(function (r) {
@@ -202,6 +251,7 @@
       renderChips();
       return loadCategories(true);
     }).catch(function (e) {
+      if (e && e.invalidPassword) { showLogin('密碼已失效，請重新登入'); return; }
       $('drawErrorText').textContent = errText(e, '抽題');
       $('drawError').hidden = false;
     }).then(function () { drawing = false; updateDrawBtn(); });
@@ -267,7 +317,29 @@
   $('allBtn').addEventListener('click', function () { setAll(true); });
   $('noneBtn').addEventListener('click', function () { setAll(false); });
 
-  loadCategories(false);
+  // 登入送出：用 listCategories 驗證密碼
+  $('loginForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var typed = $('pwInput').value;
+    var m = $('loginMsg');
+    if (!typed) { m.textContent = '請輸入密碼。'; m.hidden = false; return; }
+    $('loginBtn').disabled = true; m.hidden = true;
+    Api.listCategories(typed).then(function () {
+      pw = typed; savePw(typed);
+      $('pwInput').value = '';
+      showApp();
+      return loadCategories(false);
+    }).catch(function (e) {
+      if (e && e.invalidPassword) { m.textContent = '密碼不對'; $('pwInput').value = ''; }
+      else m.textContent = '登入失敗，請檢查網路後再按「進入」重試。' + (e && e.message ? '（' + e.message + '）' : '');
+      m.hidden = false;
+    }).then(function () { $('loginBtn').disabled = false; });
+  });
+
+  // 載入：有存密碼就直接驗證進入，否則顯示登入畫面
+  var saved = readPw();
+  if (saved) { pw = saved; showApp(); loadCategories(false); }
+  else showLogin('');
 })();
 </script>
 </body>

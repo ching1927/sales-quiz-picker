@@ -10,7 +10,11 @@
 -- 種子題目只在題庫為空時才寫入，所以重跑不會報錯、也不會重複塞題。
 --
 -- 安全設計：資料表全部啟用 RLS 且不開放任何權限給網頁端（anon），
--- 前端只能呼叫下面的函式（RPC），管理動作都要驗證密碼。
+-- 前端只能呼叫下面的函式（RPC）。
+-- 這版起：查分類（list_categories）與抽題（draw_questions）也要密碼，
+-- 與管理共用同一組密碼，並且在資料庫端檢查（密碼錯誤丟 invalid_password，不會有任何寫入）。
+-- 因為函式簽名變了（多一個 p_pw），下面會先 drop 舊簽名函式；
+-- 重跑不會動到既有的密碼、題目與已抽記錄。
 -- ============================================================
 
 create extension if not exists pgcrypto with schema extensions;
@@ -89,10 +93,14 @@ $$;
 revoke execute on function public._pw_ok(text)     from public, anon, authenticated;
 revoke execute on function public._assert_pw(text) from public, anon, authenticated;
 
--- ---------- 公開函式（不需密碼） ----------
+-- ---------- 查分類與抽題（需要密碼） ----------
+
+-- 舊版（免密碼）簽名的函式要先刪掉，否則會殘留且任何人都能免密碼呼叫
+drop function if exists public.list_categories();
+drop function if exists public.draw_questions(text[]);
 
 -- 各分類題數與本輪剩餘題數
-create or replace function public.list_categories()
+create or replace function public.list_categories(p_pw text)
 returns table(category text, total int, remaining int)
 language plpgsql
 stable
@@ -101,6 +109,7 @@ set search_path = public, extensions
 as $$
 #variable_conflict use_column
 begin
+  perform public._assert_pw(p_pw);
   return query
     select q.category,
            count(*)::int,
@@ -113,7 +122,7 @@ end;
 $$;
 
 -- 依序每個分類各抽 1 題
-create or replace function public.draw_questions(p_cats text[])
+create or replace function public.draw_questions(p_pw text, p_cats text[])
 returns table(id bigint, category text, text text, total int, remaining int, new_round boolean)
 language plpgsql
 security definer
@@ -129,6 +138,9 @@ declare
   v_new boolean;
   v_left int;
 begin
+  -- 先驗密碼（在取得鎖之前），密碼錯誤就不會有任何寫入、也不會卡住鎖
+  perform public._assert_pw(p_pw);
+
   if p_cats is null or coalesce(array_length(p_cats, 1), 0) = 0 then
     raise exception '請至少選一個分類';
   end if;
@@ -330,8 +342,8 @@ $$;
 
 -- ---------- 函式權限：收回所有人，只開放 anon（網頁端）呼叫 ----------
 
-revoke execute on function public.list_categories()                                   from public, anon, authenticated;
-revoke execute on function public.draw_questions(text[])                               from public, anon, authenticated;
+revoke execute on function public.list_categories(text)                                from public, anon, authenticated;
+revoke execute on function public.draw_questions(text, text[])                         from public, anon, authenticated;
 revoke execute on function public.admin_login(text)                                    from public, anon, authenticated;
 revoke execute on function public.admin_list_questions(text)                           from public, anon, authenticated;
 revoke execute on function public.admin_save_question(text, bigint, text, text)        from public, anon, authenticated;
@@ -339,8 +351,8 @@ revoke execute on function public.admin_delete_question(text, bigint)           
 revoke execute on function public.admin_rename_category(text, text, text)              from public, anon, authenticated;
 revoke execute on function public.admin_reset(text, text)                              from public, anon, authenticated;
 
-grant execute on function public.list_categories()                                     to anon;
-grant execute on function public.draw_questions(text[])                                to anon;
+grant execute on function public.list_categories(text)                                 to anon;
+grant execute on function public.draw_questions(text, text[])                          to anon;
 grant execute on function public.admin_login(text)                                     to anon;
 grant execute on function public.admin_list_questions(text)                            to anon;
 grant execute on function public.admin_save_question(text, bigint, text, text)         to anon;

@@ -74,7 +74,7 @@
 
   <!-- 登入關卡 -->
   <section id="loginView" class="card glass">
-    <p class="hint">這是管理頁，請輸入管理密碼。密碼只留在這個分頁的記憶體裡，重新整理就要重新輸入。</p>
+    <p class="hint">這是管理頁，請輸入管理密碼。密碼只留在這個分頁，關掉分頁就要重新輸入。</p>
     <div id="loginMsg" class="msg-bar err" role="alert" hidden></div>
     <form id="loginForm" class="field" autocomplete="off">
       <label for="pwInput">管理密碼</label>
@@ -135,7 +135,11 @@
   var $ = function (id) { return document.getElementById(id); };
   var NEW_CAT = '__new__';
 
-  var pw = null;            // 密碼只放記憶體，不存 localStorage / cookie / URL
+  var pw = null;            // 密碼存在記憶體＋sessionStorage（與抽題頁共用，關分頁即清）；不用 localStorage / cookie / URL
+  var PW_KEY = 'quiz_pw';
+  function readPw() { try { return sessionStorage.getItem(PW_KEY); } catch (e) { return null; } }
+  function savePw(v) { try { sessionStorage.setItem(PW_KEY, v); } catch (e) { /* 不可用就只留記憶體 */ } }
+  function clearPw() { try { sessionStorage.removeItem(PW_KEY); } catch (e) {} }
   var questions = [];       // 目前題庫
   var filterCat = '';       // 篩選分類（空字串＝全部）
   var editingId = null;     // 編輯中的題目 id（null＝新增）
@@ -169,7 +173,7 @@
 
   // 密碼被雲端判定錯誤 → 回登入畫面
   function backToLogin(msg) {
-    pw = null; questions = []; editingId = null; renamingCat = null; filterCat = '';
+    pw = null; clearPw(); questions = []; editingId = null; renamingCat = null; filterCat = '';
     clearStatus();
     $('adminView').hidden = true; $('adminView').style.display = 'none';
     $('loginView').hidden = false;
@@ -404,7 +408,7 @@
     run(function () {
       return Api.adminLogin(typed).then(function (ok) {
         if (ok !== true) { var m2 = $('loginMsg'); m2.textContent = '密碼不對'; m2.hidden = false; $('pwInput').value = ''; return; }
-        pw = typed; $('pwInput').value = ''; $('loginMsg').hidden = true;
+        pw = typed; savePw(typed); $('pwInput').value = ''; $('loginMsg').hidden = true;
         $('loginView').hidden = true;
         $('adminView').hidden = false; $('adminView').style.display = 'flex';
         clearStatus();
@@ -426,6 +430,25 @@
 
   $('adminView').style.display = 'none';
   $('pwInput').focus();
+
+  // 載入時若 sessionStorage 已有密碼 → 先驗證，通過就直接進管理畫面
+  var saved = readPw();
+  if (saved) {
+    run(function () {
+      return Api.adminLogin(saved).then(function (ok) {
+        if (ok !== true) { clearPw(); return; }
+        pw = saved;
+        $('loginView').hidden = true;
+        $('adminView').hidden = false; $('adminView').style.display = 'flex';
+        return loadList();
+      });
+    }).then(function () {
+      // 網路錯誤時 run 已顯示在 statusBar（隱藏中），同步到登入畫面
+      if (pw === null && !$('statusBar').hidden && $('statusBar').classList.contains('err')) {
+        var m = $('loginMsg'); m.textContent = $('statusBar').textContent; m.hidden = false;
+      }
+    });
+  }
 })();
 </script>
 </body>

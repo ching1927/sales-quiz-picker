@@ -2,14 +2,12 @@
  * 雲端介面約定（資料庫端 supabase/schema.sql 與前端頁面都以此為準）
  * 全部透過 Supabase 的 RPC（POST /rest/v1/rpc/<函式名>）呼叫，前端不直接讀寫資料表。
  *
- * 公開（不需密碼）
- *   list_categories()                → [{ category, total, remaining }]  依分類名稱排序；total=該分類題數，remaining=本輪未抽題數
- *   draw_questions(p_cats text[])    → [{ id, category, text, total, remaining, new_round }]
+ * 需要密碼（抽題與管理共用同一組密碼；密碼錯誤一律丟錯，錯誤訊息含 invalid_password）
+ *   list_categories(p_pw)                       → [{ category, total, remaining }]  依分類名稱排序；total=該分類題數，remaining=本輪未抽題數
+ *   draw_questions(p_pw, p_cats text[])         → [{ id, category, text, total, remaining, new_round }]
  *        依 p_cats 順序，每個分類各抽 1 題（只從該分類「本輪未抽」裡挑；已抽記錄全裝置共用）。
  *        該分類本輪已抽完 → 先自動開新一輪再抽（new_round=true），且新一輪第一題不與上一題相同（該分類只有 1 題時例外）。
  *        remaining 為抽完這題後的剩餘題數。p_cats 為空或含不存在的分類 → 丟錯。
- *
- * 需要密碼（密碼錯誤一律丟錯，錯誤訊息含 invalid_password）
  *   admin_login(p_pw)                           → boolean
  *   admin_list_questions(p_pw)                  → [{ id, category, text, drawn }]  依 category、id 排序
  *   admin_save_question(p_pw, p_id, p_category, p_text) → bigint(題目 id)  p_id 為 null＝新增，否則修改；category/text 不可空白
@@ -42,8 +40,8 @@
   }
 
   window.Api = {
-    listCategories: function () { return rpc('list_categories'); },
-    drawQuestions: function (cats) { return rpc('draw_questions', { p_cats: cats }); },
+    listCategories: function (pw) { return rpc('list_categories', { p_pw: pw }); },
+    drawQuestions: function (pw, cats) { return rpc('draw_questions', { p_pw: pw, p_cats: cats }); },
     adminLogin: function (pw) { return rpc('admin_login', { p_pw: pw }); },
     adminListQuestions: function (pw) { return rpc('admin_list_questions', { p_pw: pw }); },
     adminSaveQuestion: function (pw, id, category, text) {
