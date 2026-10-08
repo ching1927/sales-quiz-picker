@@ -7,121 +7,207 @@
 <link rel="stylesheet" href="tokens.css">
 <style>
   /* 只使用 tokens.css 的變數，不自訂新色 */
-  .page{max-width:640px;margin:0 auto;padding:var(--sp-6) var(--sp-4) var(--sp-8);min-height:100vh;display:flex;flex-direction:column;gap:var(--sp-4)}
-  h1{font-size:24px;font-weight:700;letter-spacing:.02em;text-align:center;padding:var(--sp-4) 0 var(--sp-2)}
-  .card{padding:var(--sp-6);display:flex;flex-direction:column;justify-content:center;gap:var(--sp-4)}
+  svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-  /* 分類勾選區 */
-  .picker-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);color:var(--ink-2);font-size:15px;font-weight:600}
-  .link-btn{font-family:var(--font);font-size:14px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-pill);min-height:36px}
-  .link-btn:hover{background:var(--accent-soft)}
-  .link-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .link-btn[disabled]{color:var(--ink-3);cursor:not-allowed;background:none}
-  .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--sp-3)}
-  .chip{font-family:var(--font);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:var(--sp-1);min-height:64px;padding:var(--sp-3) var(--sp-4);
+  /* ===== 背景 mesh 光暈（用公版色階，緩慢漂移） ===== */
+  .mesh{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .orb{position:absolute;border-radius:50%;opacity:.5;will-change:transform}
+  .orb.o1{width:90vmax;height:90vmax;left:-35vmax;top:-45vmax;background:radial-gradient(circle,var(--seq-2) 0%,transparent 62%);animation:drift 14s var(--ease) infinite alternate}
+  .orb.o2{width:80vmax;height:80vmax;right:-40vmax;top:20vh;background:radial-gradient(circle,var(--cat-2) 0%,transparent 62%);opacity:.22;animation:drift 18s var(--ease) infinite alternate-reverse}
+  .orb.o3{width:70vmax;height:70vmax;left:-20vmax;bottom:-40vmax;background:radial-gradient(circle,var(--seq-1) 0%,transparent 62%);opacity:.7;animation:drift 16s var(--ease) infinite alternate}
+  @keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(6vmax,4vmax,0)}}
+
+  .page{position:relative;z-index:1;max-width:620px;margin:0 auto;padding:var(--sp-6) var(--sp-4) var(--sp-8);min-height:100vh;display:flex;flex-direction:column;gap:var(--sp-4)}
+  [hidden]{display:none!important}
+
+  /* ===== 通用按鈕 ===== */
+  .btn{font-family:var(--font);font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);
+    border-radius:var(--r-pill);min-height:48px;transition:transform var(--dur-micro) var(--ease),box-shadow var(--dur-micro) var(--ease),background var(--dur-micro) var(--ease)}
+  .btn:active:not([disabled]){transform:scale(.97)}
+  .btn:focus-visible,.chip:focus-visible,.link-btn:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn-primary{width:100%;min-height:60px;font-size:19px;padding:var(--sp-3) var(--sp-8);color:#fff;background:var(--accent);box-shadow:0 8px 22px rgba(47,107,255,.32),var(--specular)}
+  .btn-primary[disabled]{background:var(--track);color:var(--ink-2);box-shadow:none;cursor:not-allowed}
+  .btn-glass{background:var(--glass-bg-strong);color:var(--ink);box-shadow:var(--specular),var(--hairline);font-size:15px;padding:var(--sp-2) var(--sp-4)}
+  @media (hover:hover){
+    .btn-primary:hover:not([disabled]){background:var(--accent-deep)}
+    .btn-glass:hover{box-shadow:var(--specular),var(--hairline),var(--shadow)}
+  }
+  #drawIcon{display:inline-flex}
+  #drawIcon:empty{display:none}
+  .spin{width:20px;height:20px;border-radius:50%;border:2.5px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ===== 登入 ===== */
+  #loginView{flex:1;display:flex;align-items:center;justify-content:center;padding:var(--sp-8) 0}
+  .login-card{width:100%;max-width:400px;padding:var(--sp-8) var(--sp-4);display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--sp-3);animation:rise var(--dur-in) var(--ease) both}
+  .lock{width:64px;height:64px;border-radius:var(--r-ctrl);display:flex;align-items:center;justify-content:center;color:var(--accent-deep);background:var(--accent-soft);box-shadow:var(--specular),var(--hairline)}
+  .lock svg{width:30px;height:30px}
+  .eyebrow{font-size:13px;font-weight:600;letter-spacing:.12em;color:var(--accent-deep)}
+  .login-card h1{font-size:26px;line-height:1.25;font-weight:700;letter-spacing:.01em}
+  .hint{color:var(--ink-2);font-size:14px;line-height:1.7}
+  .hint span{display:block;text-wrap:balance}
+  #loginForm{width:100%;display:flex;flex-direction:column;gap:var(--sp-3);margin-top:var(--sp-3);text-align:left}
+  #loginForm label{font-size:14px;font-weight:600;color:var(--ink-2)}
+  #pwInput{font-family:var(--font);font-size:18px;color:var(--ink);width:100%;min-height:56px;padding:var(--sp-3) var(--sp-4);background:var(--glass-bg-strong);border:none;border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline),inset 0 0 0 1px var(--ink-line)}
+  #pwInput.bad{box-shadow:var(--specular),inset 0 0 0 1.5px var(--danger);animation:shake .4s var(--ease)}
+  #loginBtn{min-height:56px;font-size:17px}
+  @keyframes shake{20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+  .msg-bar{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm);background:var(--danger-soft);color:var(--ink);font-size:14px;font-weight:600;line-height:1.5}
+  .msg-bar svg{width:18px;height:18px;color:var(--danger)}
+
+  /* ===== 抽題頁頁首 ===== */
+  .app-head{display:flex;flex-direction:column;gap:var(--sp-1);padding:var(--sp-4) var(--sp-1) var(--sp-1);animation:rise var(--dur-in) var(--ease) both}
+  .app-head h1{font-size:30px;line-height:1.2;font-weight:700;letter-spacing:.01em}
+  #appView{display:flex;flex-direction:column;gap:var(--sp-4)}
+
+  .card{padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-2)}
+  .picker-head{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);padding:0 var(--sp-1)}
+  .picker-head .ttl{font-size:16px;font-weight:700}
+  .link-btn{font-family:var(--font);font-size:14px;font-weight:600;color:var(--accent-deep);background:none;border:none;cursor:pointer;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-pill);min-height:44px;min-width:44px}
+  @media (hover:hover){.link-btn:hover:not([disabled]){background:var(--accent-soft)}}
+  .link-btn[disabled]{color:var(--ink-2);opacity:.5;cursor:not-allowed}
+
+  /* ===== 分類按鈕 ===== */
+  .chips{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-3)}
+  .chips .chip:last-child:nth-child(odd){grid-column:1/-1}
+  @media (min-width:560px){.chips{grid-template-columns:repeat(3,1fr)}.chips .chip:last-child:nth-child(odd){grid-column:auto}}
+  /* 兩欄時落單的最後一顆：改成橫向排列，避免右邊一大塊空白 */
+  @media (max-width:559px){
+    .chips .chip:last-child:nth-child(odd){display:grid;grid-template-columns:36px 1fr 24px;grid-template-areas:"ico name tick" "ico num tick" "bar bar bar";column-gap:var(--sp-3);align-items:center;min-height:0}
+    .chips .chip:last-child:nth-child(odd) .chip-top{display:contents}
+    .chips .chip:last-child:nth-child(odd) .ico{grid-area:ico}
+    .chips .chip:last-child:nth-child(odd) .tick{grid-area:tick}
+    .chips .chip:last-child:nth-child(odd) .cname{grid-area:name}
+    .chips .chip:last-child:nth-child(odd) .cnum{grid-area:num}
+    .chips .chip:last-child:nth-child(odd) .bar{grid-area:bar;margin-top:var(--sp-2)}
+  }
+  .chip{font-family:var(--font);text-align:left;cursor:pointer;position:relative;display:flex;flex-direction:column;gap:var(--sp-1);min-height:112px;padding:var(--sp-3) var(--sp-4);
     color:var(--ink);background:var(--glass-bg-strong);border:none;border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline);
     transition:transform var(--dur-micro) var(--ease),box-shadow var(--dur-micro) var(--ease),background var(--dur-micro) var(--ease)}
   .chip:active{transform:scale(.97)}
-  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .chip .name{font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2)}
-  .chip .name svg{width:20px;height:20px;opacity:0;stroke-width:3}
-  .chip .num{font-size:13px;color:var(--ink-2);font-family:var(--mono)}
-  .chip[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent-deep);box-shadow:0 0 0 2px var(--accent)}
-  .chip[aria-pressed="true"] .name svg{opacity:1}
-  .chip[aria-pressed="true"] .num{color:var(--accent-deep)}
-  .skel{height:64px;border-radius:var(--r-ctrl);background:linear-gradient(90deg,var(--skeleton-base),var(--skeleton-sheen),var(--skeleton-base));background-size:200% 100%;animation:sheen 1.4s linear infinite}
+  @media (hover:hover){.chip:hover{box-shadow:var(--specular),var(--hairline),var(--shadow)}}
+  .chip-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-1)}
+  .ico{width:36px;height:36px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;color:var(--ink-2);background:var(--skeleton-base);transition:background var(--dur-micro) var(--ease),color var(--dur-micro) var(--ease)}
+  .ico svg{width:20px;height:20px}
+  .tick{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:var(--accent);transform:scale(0);opacity:0;transition:transform var(--dur-micro) var(--ease),opacity var(--dur-micro) var(--ease)}
+  .tick svg{width:14px;height:14px;stroke-width:3}
+  .cname{font-size:17px;font-weight:700}
+  .cnum{font-size:13px;color:var(--ink-2);font-family:var(--mono)}
+  .bar{height:5px;border-radius:var(--r-pill);background:var(--track);overflow:hidden;margin-top:var(--sp-1)}
+  .bar i{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width var(--dur-in) var(--ease)}
+  .chip[aria-pressed="true"]{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent),var(--specular)}
+  .chip[aria-pressed="true"] .ico{background:var(--accent);color:#fff}
+  .chip[aria-pressed="true"] .tick{transform:scale(1);opacity:1}
+  .chip[aria-pressed="true"] .cname{color:var(--accent-deep)}
+  .chip[aria-pressed="true"] .cnum{color:var(--ink)}
+  .chip.pop{animation:pop .4s var(--ease)}
+  @keyframes pop{0%{transform:scale(.94)}55%{transform:scale(1.035)}100%{transform:scale(1)}}
+
+  /* 載入骨架 */
+  .skel{min-height:112px;border-radius:var(--r-ctrl);background:linear-gradient(90deg,var(--skeleton-base),var(--skeleton-sheen),var(--skeleton-base));background-size:200% 100%;animation:sheen 1.4s linear infinite}
+  .chips .skel:last-child:nth-child(odd){grid-column:1/-1}
   @keyframes sheen{from{background-position:200% 0}to{background-position:-200% 0}}
-  .error{display:flex;flex-direction:column;align-items:center;gap:var(--sp-3);text-align:center;color:var(--danger);background:var(--danger-soft);border-radius:var(--r-ctrl);padding:var(--sp-4);font-size:15px;line-height:1.6}
 
-  .error[hidden]{display:none}
+  /* 錯誤與重試 */
+  .error{display:flex;flex-direction:column;align-items:center;gap:var(--sp-3);text-align:center;color:var(--ink);background:var(--danger-soft);border-radius:var(--r-ctrl);padding:var(--sp-6) var(--sp-4);font-size:15px;line-height:1.7;box-shadow:inset 0 0 0 1px var(--danger-soft)}
+  .error .eico{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--danger);background:var(--glass-bg-strong);box-shadow:var(--specular),var(--hairline)}
+  .error .etitle{font-size:17px;font-weight:700}
+  .empty{color:var(--ink-2);font-size:16px;line-height:1.7;text-align:center;grid-column:1/-1}
 
-  /* 結果卡片 */
+  /* ===== 抽題區 ===== */
+  .draw-zone{display:flex;flex-direction:column;gap:var(--sp-2);align-items:stretch}
+  .sel-count{text-align:center;font-size:15px;color:var(--ink-2);min-height:22px}
+  .sel-count b{font-family:var(--mono);font-size:17px;color:var(--accent-deep);font-weight:700;padding:0 2px}
+
+  /* ===== 題目卡（LINE 對話風） ===== */
   .results{display:flex;flex-direction:column;gap:var(--sp-4)}
-  .q-card{gap:var(--sp-3)}
-  .q-card .btn-glass{flex:none;align-self:flex-start;min-height:44px;padding:var(--sp-2) var(--sp-4);font-size:15px}
-  .tag{align-self:flex-start;background:var(--accent-soft);color:var(--accent-deep);font-weight:600;font-size:14px;padding:var(--sp-1) var(--sp-3);border-radius:var(--r-pill)}
-  .msg{font-size:22px;line-height:1.7;font-weight:500;word-break:break-word;white-space:pre-wrap}
-  .empty{color:var(--ink-2);font-size:17px;line-height:1.7;text-align:center}
-  .notice{background:var(--warning-soft);color:var(--warning);font-weight:600;font-size:15px;padding:var(--sp-3) var(--sp-4);border-radius:var(--r-ctrl);text-align:center}
+  .q-card{padding:var(--sp-4) var(--sp-4) var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-3);animation:rise var(--dur-in) var(--ease) both}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .notice{display:flex;align-items:center;justify-content:center;gap:var(--sp-2);background:var(--warning-soft);color:var(--ink);font-weight:600;font-size:14px;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm)}
+  .notice svg{width:18px;height:18px;color:var(--warning)}
+  .chat{display:flex;gap:var(--sp-3);align-items:flex-start}
+  .avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent-deep);background:var(--accent-soft);box-shadow:var(--specular),var(--hairline)}
+  .avatar svg{width:24px;height:24px}
+  .chat-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--sp-2);align-items:flex-start}
+  .tag{background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:13px;letter-spacing:.04em;padding:var(--sp-1) var(--sp-3);border-radius:var(--r-pill)}
+  .bubble{position:relative;width:fit-content;max-width:calc(100% - var(--sp-6));background:var(--glass-bg-strong);border-radius:4px var(--r-card) var(--r-card) var(--r-card);padding:var(--sp-3) var(--sp-4);box-shadow:var(--specular),var(--hairline),var(--shadow)}
+  .bubble::before{content:"";position:absolute;left:-8px;top:0;width:9px;height:14px;background:var(--glass-bg-strong);clip-path:polygon(100% 0,0 0,100% 100%)}
+  .msg{font-size:19px;line-height:1.7;font-weight:500;word-break:break-word;white-space:pre-wrap}
+  .copy-row{display:flex;justify-content:flex-end}
+  .copy-row .btn{min-height:44px}
+  .btn-done{background:var(--success-soft);color:var(--ink)}
+  .btn-done svg{color:var(--success)}
 
-  .btn{font-family:var(--font);font-weight:600;border:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);
-    border-radius:var(--r-pill);transition:transform var(--dur-micro) var(--ease),box-shadow var(--dur-micro) var(--ease);min-height:48px}
-  .btn:active{transform:scale(.97)}
-  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(47,107,255,.32);font-size:22px;padding:var(--sp-4) var(--sp-8);min-height:68px;width:100%}
-  .btn-primary:hover{background:var(--accent-deep)}
-  .btn-glass{background:var(--glass-bg-strong);color:var(--ink);backdrop-filter:blur(12px) saturate(160%);-webkit-backdrop-filter:blur(12px) saturate(160%);
-    box-shadow:var(--specular),var(--hairline);font-size:16px;padding:var(--sp-3) var(--sp-6);flex:1}
-  .btn-glass[disabled]{color:var(--ink-3);cursor:not-allowed}
-  .btn-danger{background:var(--danger-soft);color:var(--danger);font-size:15px;padding:var(--sp-3) var(--sp-6);flex:1}
-  .btn-done{color:var(--success)}
-  .row{display:flex;gap:var(--sp-3)}
-  svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-
-  /* 登入畫面（沿用 admin.html 登入畫面的外觀） */
-  #appView{display:flex;flex-direction:column;gap:var(--sp-4)}
-  #appView[hidden],#loginView[hidden]{display:none}
-  .hint{color:var(--ink-2);font-size:14px;line-height:1.6}
-  .field{display:flex;flex-direction:column}
-  label{font-size:14px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:var(--sp-1)}
-  input[type=password]{font-family:var(--font);font-size:16px;color:var(--ink);width:100%;min-height:48px;
-    padding:var(--sp-3) var(--sp-4);background:var(--glass-bg-strong);border:none;border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline)}
-  input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .msg-bar{border-radius:var(--r-ctrl);padding:var(--sp-3) var(--sp-4);font-size:15px;line-height:1.6;font-weight:600}
-  .msg-bar.err{background:var(--danger-soft);color:var(--danger)}
-  .msg-bar[hidden]{display:none}
-  .btn[disabled]{cursor:not-allowed;opacity:.55}
-  #loginBtn{font-size:16px;min-height:48px;width:auto;padding:var(--sp-2) var(--sp-6)}
-
-  footer{margin-top:auto;text-align:center;color:var(--ink-3);font-size:13px;padding-top:var(--sp-6)}
-  footer .link-btn{color:var(--ink-3);font-size:13px;text-decoration:underline}
-  @media (max-width:400px){.msg{font-size:20px}h1{font-size:22px}}
+  footer{margin-top:auto;text-align:center;color:var(--ink-2);font-size:13px;padding-top:var(--sp-6)}
+  footer .link-btn{color:var(--ink-2);font-size:13px;text-decoration:underline;display:inline-flex;align-items:center}
+  @media (max-width:400px){.app-head h1{font-size:26px}.msg{font-size:18px}}
+  @media (prefers-reduced-motion:reduce){.orb{animation:none}}
 </style>
 </head>
 <body>
+<div class="mesh" aria-hidden="true"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+
 <main class="page">
-  <h1>新人業務考題抽選器</h1>
 
   <!-- 登入關卡：登入成功前，下面的抽題畫面（appView）一律隱藏 -->
-  <section id="loginView" class="card glass" hidden>
-    <p class="hint">請輸入密碼才能抽題。密碼只留在這個分頁，關掉分頁就要重新輸入。</p>
-    <div id="loginMsg" class="msg-bar err" role="alert" hidden></div>
-    <form id="loginForm" class="field" autocomplete="off">
-      <label for="pwInput">密碼</label>
-      <input type="password" id="pwInput" autocomplete="off">
-      <div class="row" style="margin-top:var(--sp-4)">
+  <section id="loginView" hidden>
+    <div class="login-card glass">
+      <div class="lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11"/><path d="M12 15.5v2"/></svg></div>
+      <div class="eyebrow">貳輪嶼 · 新人訓練</div>
+      <h1>新人業務考題抽選器</h1>
+      <p class="hint"><span>請輸入密碼才能抽題。</span><span>密碼只留在這個分頁，<wbr>關掉分頁就要重新輸入。</span></p>
+      <form id="loginForm" autocomplete="off">
+        <label for="pwInput">密碼</label>
+        <input type="password" id="pwInput" autocomplete="off" aria-describedby="loginMsg">
+        <div id="loginMsg" class="msg-bar" role="alert" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></svg>
+          <span id="loginMsgText"></span>
+        </div>
         <button class="btn btn-primary" id="loginBtn" type="submit">進入</button>
-      </div>
-    </form>
+      </form>
+    </div>
   </section>
 
+  <!-- 抽題頁 -->
   <div id="appView" hidden>
-  <section class="card glass" aria-label="選擇分類">
-    <div class="picker-head">
-      <span>選擇要考的分類</span>
-      <span>
-        <button class="link-btn" id="allBtn" type="button" disabled>全選</button>
-        <button class="link-btn" id="noneBtn" type="button" disabled>全不選</button>
-      </span>
+    <header class="app-head">
+      <span class="eyebrow">貳輪嶼 · 新人訓練</span>
+      <h1>新人業務考題抽選器</h1>
+    </header>
+
+    <section class="card glass" aria-label="選擇分類">
+      <div class="picker-head">
+        <span class="ttl">選擇要考的分類</span>
+        <span>
+          <button class="link-btn" id="allBtn" type="button" disabled>全選</button>
+          <button class="link-btn" id="noneBtn" type="button" disabled>全不選</button>
+        </span>
+      </div>
+      <div id="chips" class="chips" aria-busy="true"></div>
+      <div id="loadError" class="error" role="alert" hidden>
+        <span class="eico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.8a15 15 0 0 1 20 0"/><path d="M5.5 12.4a10 10 0 0 1 13 0"/><path d="M9 16a5 5 0 0 1 6 0"/><path d="M12 19.5h.01"/><path d="M3 3l18 18"/></svg></span>
+        <span class="etitle">載入不到分類</span>
+        <span id="loadErrorText"></span>
+        <button class="btn btn-glass" id="retryBtn" type="button">重試</button>
+      </div>
+    </section>
+
+    <div class="draw-zone">
+      <div class="sel-count" id="selCount" aria-live="polite"></div>
+      <button class="btn btn-primary" id="drawBtn" type="button" disabled>
+        <span id="drawIcon"></span>
+        <span id="drawLabel">載入中…</span>
+      </button>
     </div>
-    <div id="chips" class="chips" aria-busy="true"></div>
-    <div id="loadError" class="error" role="alert" hidden>
-      <span id="loadErrorText"></span>
-      <button class="btn btn-glass" id="retryBtn" type="button">重試</button>
+
+    <div id="drawError" class="error" role="alert" hidden>
+      <span class="eico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5"/><path d="M12 16.5h.01"/></svg></span>
+      <span class="etitle">抽題失敗</span>
+      <span id="drawErrorText"></span>
+      <button class="btn btn-glass" id="drawRetryBtn" type="button">重試</button>
     </div>
-  </section>
 
-  <button class="btn btn-primary" id="drawBtn" type="button" disabled>
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
-    <span id="drawLabel">載入中…</span>
-  </button>
-
-  <div id="drawError" class="error" role="alert" hidden>
-    <span id="drawErrorText"></span>
-    <button class="btn btn-glass" id="drawRetryBtn" type="button">重試</button>
-  </div>
-
-  <div id="results" class="results" aria-live="polite"></div>
+    <div id="results" class="results" aria-live="polite"></div>
   </div>
 
   <footer>
@@ -136,6 +222,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var categories = [];      // 雲端回傳的分類清單 [{category,total,remaining}]
   var selected = {};        // 已勾選的分類名稱
+  var chipRefs = {};        // 分類按鈕的元素參照（原地更新用）
   var drawing = false;      // 抽題進行中（防連點）
   var loaded = false;       // 分類是否載入成功
   var PW_KEY = 'quiz_pw';   // 與管理頁共用的 sessionStorage 鍵
@@ -145,71 +232,101 @@
   function savePw(v) { try { sessionStorage.setItem(PW_KEY, v); } catch (e) { /* 不可用就只留記憶體 */ } }
   function clearPw() { try { sessionStorage.removeItem(PW_KEY); } catch (e) {} }
 
+  /* ===== SVG 圖示（viewBox 24x24、線條粗細統一由 CSS 控制）；分類圖示依名稱查表，查不到用通用圖示 ===== */
+  var ICONS = {
+    '詢價': '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><path d="M7.5 7.5h.01"/>',
+    '殺價': '<path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+    '客訴': '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M12 8v4"/><path d="M12 15.5h.01"/>',
+    '交車': '<circle cx="7.5" cy="15.5" r="4"/><path d="M10.4 12.6L20 3"/><path d="M16 7l3 3"/><path d="M13.5 9.5l2 2"/>',
+    '售後': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/>'
+  };
+  var FALLBACK_ICON = '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>';
+  function svg(inner) { return '<svg viewBox="0 0 24 24" aria-hidden="true">' + inner + '</svg>'; }
+  function iconFor(name) { return Object.prototype.hasOwnProperty.call(ICONS, name) ? ICONS[name] : FALLBACK_ICON; }
+  var CHECK = svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>');
+  var DICE = svg('<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/>');
+  var USER = svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>');
+  var REFRESH = svg('<path d="M20 11a8 8 0 0 0-14.4-4.2L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.4 4.2L20 15"/><path d="M20 20v-5h-5"/>');
+  var COPY = svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>');
+
   function showLogin(msg) {
     pw = null; clearPw();
-    categories = []; selected = {}; loaded = false; drawing = false;
+    categories = []; selected = {}; chipRefs = {}; loaded = false; drawing = false;
     $('results').innerHTML = ''; $('chips').innerHTML = ''; $('drawError').hidden = true; $('loadError').hidden = true;
     $('appView').hidden = true; $('loginView').hidden = false;
-    $('pwInput').value = '';
-    var m = $('loginMsg'); m.textContent = msg || ''; m.hidden = !msg;
+    $('pwInput').value = ''; setLoginMsg(msg || '');
     $('loginBtn').disabled = false;
     $('pwInput').focus();
   }
   function showApp() { $('loginView').hidden = true; $('appView').hidden = false; }
-
-  var CHECK_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-
+  function setLoginMsg(t) {
+    $('loginMsgText').textContent = t || '';
+    $('loginMsg').hidden = !t;
+    $('pwInput').classList.toggle('bad', !!t);
+  }
   function errText(e, what) {
     var m = e && e.message ? e.message : '';
     return what + '失敗，請檢查網路後按「重試」。' + (m ? '（' + m + '）' : '');
   }
-
   function selectedList() {
     // 依畫面上分類順序回傳已勾選者
     return categories.filter(function (c) { return selected[c.category]; }).map(function (c) { return c.category; });
   }
 
   function updateDrawBtn() {
-    var n = selectedList().length;
-    var btn = $('drawBtn');
-    if (!loaded) { btn.disabled = true; $('drawLabel').textContent = '載入中…'; return; }
-    if (drawing) { btn.disabled = true; $('drawLabel').textContent = '抽題中…'; return; }
+    var n = selectedList().length, btn = $('drawBtn');
+    $('allBtn').disabled = $('noneBtn').disabled = !loaded || !categories.length || drawing;
+    if (!loaded && !$('loadError').hidden) { btn.disabled = true; $('drawIcon').innerHTML = ''; $('drawLabel').textContent = '請先重試載入分類'; $('selCount').textContent = ''; return; }
+    if (!loaded) { btn.disabled = true; $('drawIcon').innerHTML = '<span class="spin"></span>'; $('drawLabel').textContent = '載入中…'; $('selCount').textContent = ''; return; }
+    var cnt = $('selCount'); cnt.textContent = '';
+    if (n === 0) cnt.textContent = '尚未選擇分類';
+    else { cnt.appendChild(document.createTextNode('已選')); var b = document.createElement('b'); b.textContent = n; cnt.appendChild(b); cnt.appendChild(document.createTextNode('個分類')); }
+    if (drawing) { btn.disabled = true; $('drawIcon').innerHTML = '<span class="spin"></span>'; $('drawLabel').textContent = '抽題中…'; return; }
     btn.disabled = n === 0;
+    $('drawIcon').innerHTML = n === 0 ? '' : DICE;
     $('drawLabel').textContent = n === 0 ? '請先選分類' : '抽 ' + n + ' 題';
-    $('allBtn').disabled = $('noneBtn').disabled = !categories.length;
   }
 
-  function renderChips() {
-    var box = $('chips');
-    box.innerHTML = '';
+  /* ===== 分類按鈕：建一次，之後原地更新（進度條才有過場）；雲端資料一律 textContent ===== */
+  function buildChips() {
+    var box = $('chips'); box.innerHTML = ''; chipRefs = {};
     categories.forEach(function (c) {
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'chip';
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'chip';
       b.setAttribute('aria-pressed', selected[c.category] ? 'true' : 'false');
-      var name = document.createElement('span'); name.className = 'name';
-      var label = document.createElement('span'); label.textContent = c.category;
-      name.appendChild(label); name.insertAdjacentHTML('beforeend', CHECK_SVG);
-      var num = document.createElement('span'); num.className = 'num';
-      num.textContent = '剩餘 ' + c.remaining + ' / 共 ' + c.total;
-      b.appendChild(name); b.appendChild(num);
+      var top = document.createElement('span'); top.className = 'chip-top';
+      var ico = document.createElement('span'); ico.className = 'ico'; ico.innerHTML = svg(iconFor(c.category));
+      var tick = document.createElement('span'); tick.className = 'tick'; tick.innerHTML = CHECK;
+      top.appendChild(ico); top.appendChild(tick);
+      var name = document.createElement('span'); name.className = 'cname'; name.textContent = c.category;
+      var num = document.createElement('span'); num.className = 'cnum';
+      var bar = document.createElement('span'); bar.className = 'bar'; var fill = document.createElement('i'); bar.appendChild(fill);
+      b.appendChild(top); b.appendChild(name); b.appendChild(num); b.appendChild(bar);
       b.addEventListener('click', function () {
         selected[c.category] = !selected[c.category];
         b.setAttribute('aria-pressed', selected[c.category] ? 'true' : 'false');
+        if (selected[c.category]) { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
         updateDrawBtn();
       });
+      b.addEventListener('animationend', function () { b.classList.remove('pop'); });
       box.appendChild(b);
+      chipRefs[c.category] = { num: num, fill: fill, btn: b };
     });
     if (!categories.length) {
-      var e = document.createElement('div'); e.className = 'empty'; e.style.gridColumn = '1 / -1';
-      e.textContent = '題庫還沒有任何題目，請先到「管理題庫」新增。';
-      box.appendChild(e);
+      var e = document.createElement('div'); e.className = 'empty';
+      e.textContent = '題庫還沒有任何題目，請先到「管理題庫」新增。'; box.appendChild(e);
     }
+    refreshChips();
   }
-
+  function refreshChips() {
+    categories.forEach(function (c) {
+      var r = chipRefs[c.category]; if (!r) return;
+      r.num.textContent = '剩餘 ' + c.remaining + ' / ' + c.total + ' 題';
+      r.fill.style.width = (c.total ? Math.round(c.remaining / c.total * 100) : 0) + '%';
+    });
+  }
   function showSkeleton() {
-    var box = $('chips');
-    box.innerHTML = ''; box.setAttribute('aria-busy', 'true');
-    for (var i = 0; i < 4; i++) { var s = document.createElement('div'); s.className = 'skel'; box.appendChild(s); }
+    var box = $('chips'); box.innerHTML = ''; box.setAttribute('aria-busy', 'true');
+    for (var i = 0; i < 5; i++) { var s = document.createElement('div'); s.className = 'skel'; box.appendChild(s); }
   }
 
   // 載入分類；keepSelection=true 時（抽完刷新）保留勾選
@@ -218,20 +335,22 @@
     if (!keepSelection) { loaded = false; selected = {}; showSkeleton(); }
     updateDrawBtn();
     return Api.listCategories(pw).then(function (list) {
+      var firstTime = !loaded;
+      var oldNames = categories.map(function (c) { return c.category; }).join('\u0001');
       categories = Array.isArray(list) ? list : [];
-      var next = {};
-      categories.forEach(function (c) { if (selected[c.category]) next[c.category] = true; });
-      selected = next;
-      loaded = true;
+      var namesChanged = oldNames !== categories.map(function (c) { return c.category; }).join('\u0001');
+      var next = {}; categories.forEach(function (c) { if (selected[c.category]) next[c.category] = true; });
+      selected = next; loaded = true;
       $('chips').setAttribute('aria-busy', 'false');
-      renderChips(); updateDrawBtn();
+      // 分類名單有變（別台新增／改名／刪除）才整組重建，否則只更新數字
+      if (firstTime || namesChanged) buildChips(); else refreshChips();
+      updateDrawBtn();
     }).catch(function (e) {
       if (e && e.invalidPassword) { showLogin('密碼已失效，請重新登入'); return; }
       if (keepSelection) return; // 刷新失敗不打斷畫面，抽題結果仍已顯示
       $('chips').innerHTML = ''; $('chips').setAttribute('aria-busy', 'false');
       $('loadErrorText').textContent = errText(e, '載入分類');
-      $('loadError').hidden = false;
-      updateDrawBtn();
+      $('loadError').hidden = false; updateDrawBtn();
     });
   }
 
@@ -241,14 +360,13 @@
     if (drawing || !cats.length) return;
     drawing = true; $('drawError').hidden = true; updateDrawBtn();
     Api.drawQuestions(pw, cats).then(function (rows) {
-      renderResults(Array.isArray(rows) ? rows : []);
+      rows = Array.isArray(rows) ? rows : [];
+      renderResults(rows);
       // 以回傳值先更新剩餘數，再重新向雲端確認
-      (Array.isArray(rows) ? rows : []).forEach(function (r) {
-        categories.forEach(function (c) {
-          if (c.category === r.category) { c.remaining = r.remaining; c.total = r.total; }
-        });
+      rows.forEach(function (r) {
+        categories.forEach(function (c) { if (c.category === r.category) { c.remaining = r.remaining; c.total = r.total; } });
       });
-      renderChips();
+      refreshChips();
       return loadCategories(true);
     }).catch(function (e) {
       if (e && e.invalidPassword) { showLogin('密碼已失效，請重新登入'); return; }
@@ -257,58 +375,63 @@
     }).then(function () { drawing = false; updateDrawBtn(); });
   }
 
+  /* ===== 題目卡（LINE 對話風）：雲端資料一律 textContent ===== */
   function renderResults(rows) {
-    var box = $('results');
-    box.innerHTML = '';
-    rows.forEach(function (r) {
-      var card = document.createElement('section'); card.className = 'card glass q-card';
+    var box = $('results'); box.innerHTML = '';
+    rows.forEach(function (r, i) {
+      var card = document.createElement('section'); card.className = 'glass q-card';
+      card.style.animationDelay = (i * 90) + 'ms';
       if (r.new_round) {
-        var n = document.createElement('div'); n.className = 'notice';
-        n.textContent = '此分類已開始新的一輪'; card.appendChild(n);
+        var n = document.createElement('div'); n.className = 'notice'; n.innerHTML = REFRESH;
+        var nt = document.createElement('span'); nt.textContent = '此分類已開始新的一輪'; n.appendChild(nt); card.appendChild(n);
       }
+      var chat = document.createElement('div'); chat.className = 'chat';
+      var av = document.createElement('div'); av.className = 'avatar'; av.innerHTML = USER;
+      var body = document.createElement('div'); body.className = 'chat-body';
       var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = r.category;
+      var bubble = document.createElement('div'); bubble.className = 'bubble';
       var msg = document.createElement('p'); msg.className = 'msg'; msg.textContent = r.text;
+      bubble.appendChild(msg); body.appendChild(tag); body.appendChild(bubble);
+      chat.appendChild(av); chat.appendChild(body); card.appendChild(chat);
+      var row = document.createElement('div'); row.className = 'copy-row';
       var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-glass';
-      btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg><span class="lbl">複製題目</span>';
+      btn.innerHTML = COPY + '<span class="lbl">複製題目</span>';
       btn.addEventListener('click', function () { copyQuestion(btn, r.text); });
-      card.appendChild(tag); card.appendChild(msg); card.appendChild(btn);
+      row.appendChild(btn); card.appendChild(row);
       box.appendChild(card);
     });
     if (rows.length) box.firstChild.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   }
 
-  // 複製（每張卡各自的按鈕與回饋）
+  /* ===== 複製（只複製客人訊息）：navigator.clipboard + execCommand 備援 ===== */
   function copyFallback(text) {
     var ta = document.createElement('textarea');
     ta.value = text; ta.setAttribute('readonly', '');
     ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
-    var ok = false;
-    try { ok = document.execCommand('copy'); } catch (e) {}
-    document.body.removeChild(ta);
-    return ok;
+    var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(ta); return ok;
   }
   function copyDone(btn, ok) {
     var lbl = btn.querySelector('.lbl');
     lbl.textContent = ok ? '已複製' : '複製失敗，請長按文字手動複製';
     btn.classList.toggle('btn-done', ok);
+    btn.querySelector('svg').outerHTML = ok ? CHECK : COPY;
     clearTimeout(btn._t);
-    btn._t = setTimeout(function () { lbl.textContent = '複製題目'; btn.classList.remove('btn-done'); }, 2000);
+    btn._t = setTimeout(function () { lbl.textContent = '複製題目'; btn.classList.remove('btn-done'); btn.querySelector('svg').outerHTML = COPY; }, 2000);
   }
   function copyQuestion(btn, text) {
     if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(
-        function () { copyDone(btn, true); },
-        function () { copyDone(btn, copyFallback(text)); }
-      );
-    } else {
-      copyDone(btn, copyFallback(text));
-    }
+      navigator.clipboard.writeText(text).then(function () { copyDone(btn, true); }, function () { copyDone(btn, copyFallback(text)); });
+    } else copyDone(btn, copyFallback(text));
   }
 
   function setAll(on) {
-    categories.forEach(function (c) { selected[c.category] = on; });
-    renderChips(); updateDrawBtn();
+    categories.forEach(function (c) {
+      selected[c.category] = on;
+      var r = chipRefs[c.category]; if (r) r.btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    updateDrawBtn();
   }
 
   $('drawBtn').addEventListener('click', draw);
@@ -316,23 +439,19 @@
   $('retryBtn').addEventListener('click', function () { loadCategories(false); });
   $('allBtn').addEventListener('click', function () { setAll(true); });
   $('noneBtn').addEventListener('click', function () { setAll(false); });
+  $('pwInput').addEventListener('input', function () { if (!$('loginMsg').hidden) setLoginMsg(''); });
 
   // 登入送出：用 listCategories 驗證密碼
   $('loginForm').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var typed = $('pwInput').value;
-    var m = $('loginMsg');
-    if (!typed) { m.textContent = '請輸入密碼。'; m.hidden = false; return; }
-    $('loginBtn').disabled = true; m.hidden = true;
+    if (!typed) { setLoginMsg('請輸入密碼。'); return; }
+    $('loginBtn').disabled = true; setLoginMsg('');
     Api.listCategories(typed).then(function () {
-      pw = typed; savePw(typed);
-      $('pwInput').value = '';
-      showApp();
-      return loadCategories(false);
+      pw = typed; savePw(typed); $('pwInput').value = ''; showApp(); return loadCategories(false);
     }).catch(function (e) {
-      if (e && e.invalidPassword) { m.textContent = '密碼不對'; $('pwInput').value = ''; }
-      else m.textContent = '登入失敗，請檢查網路後再按「進入」重試。' + (e && e.message ? '（' + e.message + '）' : '');
-      m.hidden = false;
+      if (e && e.invalidPassword) { setLoginMsg('密碼不對'); $('pwInput').value = ''; $('pwInput').focus(); }
+      else setLoginMsg('登入失敗，請檢查網路後再按「進入」重試。' + (e && e.message ? '（' + e.message + '）' : ''));
     }).then(function () { $('loginBtn').disabled = false; });
   });
 
