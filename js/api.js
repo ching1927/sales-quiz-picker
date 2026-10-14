@@ -3,14 +3,16 @@
  * 全部透過 Supabase 的 RPC（POST /rest/v1/rpc/<函式名>）呼叫，前端不直接讀寫資料表。
  *
  * 需要密碼（抽題與管理共用同一組密碼；密碼錯誤一律丟錯，錯誤訊息含 invalid_password）
- *   list_categories(p_pw)                       → [{ category, total, remaining }]  依分類名稱排序；total=該分類題數，remaining=本輪未抽題數
- *   draw_questions(p_pw, p_cats text[])         → [{ id, category, text, total, remaining, new_round }]
- *        依 p_cats 順序，每個分類各抽 1 題（只從該分類「本輪未抽」裡挑；已抽記錄全裝置共用）。
+ * 「題」＝題組：分類＋代號(code，可空)＋題組名稱(title)＋步驟清單(steps)；每個步驟 { action: 考官操作, point: 考點(可空字串) }
+ *   list_categories(p_pw)                       → [{ category, total, remaining }]  依分類第一次出現順序排序（基礎、進階、綜合）；total=該分類題組數，remaining=本輪未抽題組數
+ *   draw_questions(p_pw, p_cats text[])         → [{ id, category, code, title, steps, total, remaining, new_round }]
+ *        依 p_cats 順序，每個分類各抽 1 個題組（只從該分類「本輪未抽」裡挑；已抽記錄全裝置共用）。
  *        該分類本輪已抽完 → 先自動開新一輪再抽（new_round=true），且新一輪第一題不與上一題相同（該分類只有 1 題時例外）。
  *        remaining 為抽完這題後的剩餘題數。p_cats 為空或含不存在的分類 → 丟錯。
  *   admin_login(p_pw)                           → boolean
- *   admin_list_questions(p_pw)                  → [{ id, category, text, drawn }]  依 category、id 排序
- *   admin_save_question(p_pw, p_id, p_category, p_text) → bigint(題目 id)  p_id 為 null＝新增，否則修改；category/text 不可空白
+ *   admin_list_questions(p_pw)                  → [{ id, category, code, title, steps, drawn }]  依分類順序、id 排序
+ *   admin_save_question(p_pw, p_id, p_category, p_code, p_title, p_steps) → bigint(題目 id)  p_id 為 null＝新增，否則修改；
+ *        category/title 不可空白；code 可空（最長 10 字）；steps 為 1～30 個 { action, point }，action 不可空白；欄位長度上限 title 100、action 500、point 500
  *   admin_delete_question(p_pw, p_id)           → void
  *   admin_rename_category(p_pw, p_old, p_new)   → integer(受影響題數)  p_new 已存在則等於合併
  *   admin_reset(p_pw, p_category)               → void  p_category 為 null＝全部分類洗牌，否則只洗該分類
@@ -44,8 +46,8 @@
     drawQuestions: function (pw, cats) { return rpc('draw_questions', { p_pw: pw, p_cats: cats }); },
     adminLogin: function (pw) { return rpc('admin_login', { p_pw: pw }); },
     adminListQuestions: function (pw) { return rpc('admin_list_questions', { p_pw: pw }); },
-    adminSaveQuestion: function (pw, id, category, text) {
-      return rpc('admin_save_question', { p_pw: pw, p_id: id, p_category: category, p_text: text });
+    adminSaveQuestion: function (pw, id, category, code, title, steps) {
+      return rpc('admin_save_question', { p_pw: pw, p_id: id, p_category: category, p_code: code || null, p_title: title, p_steps: steps });
     },
     adminDeleteQuestion: function (pw, id) { return rpc('admin_delete_question', { p_pw: pw, p_id: id }); },
     adminRenameCategory: function (pw, oldName, newName) {

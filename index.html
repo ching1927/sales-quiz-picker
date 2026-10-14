@@ -106,6 +106,7 @@
   /* 載入骨架 */
   .skel{min-height:112px;border-radius:var(--r-ctrl);background:linear-gradient(90deg,var(--skeleton-base),var(--skeleton-sheen),var(--skeleton-base));background-size:200% 100%;animation:sheen 1.4s linear infinite}
   .chips .skel:last-child:nth-child(odd){grid-column:1/-1}
+  @media (min-width:560px){.chips .skel:last-child:nth-child(odd){grid-column:auto}}
   @keyframes sheen{from{background-position:200% 0}to{background-position:-200% 0}}
 
   /* 錯誤與重試 */
@@ -119,28 +120,56 @@
   .sel-count{text-align:center;font-size:15px;color:var(--ink-2);min-height:22px}
   .sel-count b{font-family:var(--mono);font-size:17px;color:var(--accent-deep);font-weight:700;padding:0 2px}
 
-  /* ===== 題目卡（LINE 對話風） ===== */
+  /* ===== 題組卡 ===== */
   .results{display:flex;flex-direction:column;gap:var(--sp-4)}
-  .q-card{padding:var(--sp-4) var(--sp-4) var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-3);animation:rise var(--dur-in) var(--ease) both}
+  .q-card{padding:var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-4);animation:rise var(--dur-in) var(--ease) both}
   @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
   .notice{display:flex;align-items:center;justify-content:center;gap:var(--sp-2);background:var(--warning-soft);color:var(--ink);font-weight:600;font-size:14px;padding:var(--sp-2) var(--sp-3);border-radius:var(--r-sm)}
   .notice svg{width:18px;height:18px;color:var(--warning)}
-  .chat{display:flex;gap:var(--sp-3);align-items:flex-start}
-  .avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--accent-deep);background:var(--accent-soft);box-shadow:var(--specular),var(--hairline)}
-  .avatar svg{width:24px;height:24px}
-  .chat-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--sp-2);align-items:flex-start}
   .tag{background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:13px;letter-spacing:.04em;padding:var(--sp-1) var(--sp-3);border-radius:var(--r-pill)}
-  .bubble{position:relative;width:fit-content;max-width:calc(100% - var(--sp-6));background:var(--glass-bg-strong);border-radius:4px var(--r-card) var(--r-card) var(--r-card);padding:var(--sp-3) var(--sp-4);box-shadow:var(--specular),var(--hairline),var(--shadow)}
-  .bubble::before{content:"";position:absolute;left:-8px;top:0;width:9px;height:14px;background:var(--glass-bg-strong);clip-path:polygon(100% 0,0 0,100% 100%)}
-  .msg{font-size:19px;line-height:1.7;font-weight:500;word-break:break-word;white-space:pre-wrap}
+
+  /* 卡片標題區：代號徽章＋題組名稱＋分類標籤 */
+  .q-head{display:flex;align-items:center;gap:var(--sp-4)}
+  .code-badge{width:64px;height:64px;flex:none;border-radius:var(--r-ctrl);display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;line-height:1;color:var(--accent-deep);background:var(--accent-soft);box-shadow:var(--specular),var(--hairline),inset 0 0 0 1px var(--accent-soft)}
+  .q-title{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2)}
+  .q-title h2{font-size:22px;line-height:1.3;font-weight:700;word-break:break-word}
+
+  /* 步驟區（手機：每步驟一塊直式卡片） */
+  .steps{display:flex;flex-direction:column;gap:var(--sp-3)}
+  .steps-head{display:none}
+  .step{display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:var(--sp-3);align-items:start;padding:var(--sp-3);background:var(--glass-bg-strong);border-radius:var(--r-ctrl);box-shadow:var(--specular),var(--hairline)}
+  .num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:15px;font-weight:700;color:var(--accent-deep);background:var(--accent-soft)}
+  .cell-body{display:flex;flex-direction:column;gap:var(--sp-2);min-width:0}
+  .act{font-size:17px;line-height:1.65;font-weight:500;word-break:break-word;white-space:pre-wrap;padding-top:2px}
+  .pt{display:flex;align-items:flex-start;gap:var(--sp-2);font-size:15px;line-height:1.6;color:var(--ink-2);word-break:break-word}
+  .pt-label{flex:none;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--accent-deep);background:var(--accent-soft);padding:2px var(--sp-2);border-radius:var(--r-pill);margin-top:2px}
+  .step .cell-act,.step .cell-pt{display:contents}
+  .step .cell-num{grid-row:1/3}
+  .step .cell-body{grid-column:2}
+
   .copy-row{display:flex;justify-content:flex-end}
   .copy-row .btn{min-height:44px}
   .btn-done{background:var(--success-soft);color:var(--ink)}
   .btn-done svg{color:var(--success)}
 
+  /* 寬螢幕：三欄表格「步驟｜考官操作｜考點」 */
+  @media (min-width:640px){
+    .steps{gap:0;border-radius:var(--r-ctrl);background:var(--glass-bg-strong);box-shadow:var(--specular),var(--hairline);overflow:hidden}
+    .steps-head,.step{display:grid;grid-template-columns:64px minmax(0,1.3fr) minmax(0,1fr);column-gap:var(--sp-3);align-items:start;padding:var(--sp-3) var(--sp-4)}
+    .steps-head{background:var(--skeleton-base);font-size:13px;font-weight:700;color:var(--ink-2);letter-spacing:.08em;align-items:center}
+    .steps-head .h-num{text-align:center}
+    .step{background:none;box-shadow:none;border-radius:0;border-top:1px solid var(--ink-line)}
+    .step .cell-body{display:contents}
+    .step .cell-num{grid-row:auto;display:flex;justify-content:center}
+    .step .act{grid-column:2;padding-top:4px}
+    .step .pt{grid-column:3;color:var(--ink-2);padding-top:4px}
+    .pt-label{display:none}
+    .q-title h2{font-size:26px}
+  }
+
   footer{margin-top:auto;text-align:center;color:var(--ink-2);font-size:13px;padding-top:var(--sp-6)}
   footer .link-btn{color:var(--ink-2);font-size:13px;text-decoration:underline;display:inline-flex;align-items:center}
-  @media (max-width:400px){.app-head h1{font-size:26px}.msg{font-size:18px}}
+  @media (max-width:400px){.app-head h1{font-size:26px}.act{font-size:16px}.q-title h2{font-size:20px}.code-badge{width:56px;height:56px;font-size:28px}}
   @media (prefers-reduced-motion:reduce){.orb{animation:none}}
 </style>
 </head>
@@ -234,6 +263,9 @@
 
   /* ===== SVG 圖示（viewBox 24x24、線條粗細統一由 CSS 控制）；分類圖示依名稱查表，查不到用通用圖示 ===== */
   var ICONS = {
+    '基礎': '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M4 19a2 2 0 0 1 2-2h13"/>',
+    '進階': '<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    '綜合': '<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 12.5l9 5 9-5"/><path d="M3 16.5l9 5 9-5"/>',
     '詢價': '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><path d="M7.5 7.5h.01"/>',
     '殺價': '<path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
     '客訴': '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><path d="M12 8v4"/><path d="M12 15.5h.01"/>',
@@ -245,7 +277,6 @@
   function iconFor(name) { return Object.prototype.hasOwnProperty.call(ICONS, name) ? ICONS[name] : FALLBACK_ICON; }
   var CHECK = svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>');
   var DICE = svg('<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01"/>');
-  var USER = svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>');
   var REFRESH = svg('<path d="M20 11a8 8 0 0 0-14.4-4.2L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.4 4.2L20 15"/><path d="M20 20v-5h-5"/>');
   var COPY = svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>');
 
@@ -313,7 +344,7 @@
     });
     if (!categories.length) {
       var e = document.createElement('div'); e.className = 'empty';
-      e.textContent = '題庫還沒有任何題目，請先到「管理題庫」新增。'; box.appendChild(e);
+      e.textContent = '題庫還沒有任何題組，請先到「管理題庫」新增。'; box.appendChild(e);
     }
     refreshChips();
   }
@@ -326,7 +357,7 @@
   }
   function showSkeleton() {
     var box = $('chips'); box.innerHTML = ''; box.setAttribute('aria-busy', 'true');
-    for (var i = 0; i < 5; i++) { var s = document.createElement('div'); s.className = 'skel'; box.appendChild(s); }
+    for (var i = 0; i < 3; i++) { var s = document.createElement('div'); s.className = 'skel'; box.appendChild(s); }
   }
 
   // 載入分類；keepSelection=true 時（抽完刷新）保留勾選
@@ -375,35 +406,76 @@
     }).then(function () { drawing = false; updateDrawBtn(); });
   }
 
-  /* ===== 題目卡（LINE 對話風）：雲端資料一律 textContent ===== */
+  /* ===== 題組卡：資料一律 textContent ===== */
+  function mk(tag, cls, text) {
+    var el = document.createElement(tag); if (cls) el.className = cls;
+    if (text !== undefined) el.textContent = text; return el;
+  }
+  function pointText(p) { return (typeof p === 'string' && p) ? p : '—'; }
+  // 雲端回傳的 steps 若不是陣列、元素缺欄位，容錯成空陣列／空字串
+  function safeSteps(r) {
+    return (Array.isArray(r.steps) ? r.steps : []).map(function (s) {
+      return { action: s && typeof s.action === 'string' ? s.action : '', point: s && typeof s.point === 'string' ? s.point : '' };
+    });
+  }
+  function codeOf(r) { return r.code ? String(r.code) : ''; }
+
   function renderResults(rows) {
     var box = $('results'); box.innerHTML = '';
     rows.forEach(function (r, i) {
-      var card = document.createElement('section'); card.className = 'glass q-card';
+      var card = mk('section', 'glass q-card');
       card.style.animationDelay = (i * 90) + 'ms';
+      card.setAttribute('aria-label', '題組 ' + codeOf(r) + '：' + (r.title || ''));
       if (r.new_round) {
-        var n = document.createElement('div'); n.className = 'notice'; n.innerHTML = REFRESH;
-        var nt = document.createElement('span'); nt.textContent = '此分類已開始新的一輪'; n.appendChild(nt); card.appendChild(n);
+        var n = mk('div', 'notice'); n.innerHTML = REFRESH;
+        n.appendChild(mk('span', '', '此分類已開始新的一輪')); card.appendChild(n);
       }
-      var chat = document.createElement('div'); chat.className = 'chat';
-      var av = document.createElement('div'); av.className = 'avatar'; av.innerHTML = USER;
-      var body = document.createElement('div'); body.className = 'chat-body';
-      var tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = r.category;
-      var bubble = document.createElement('div'); bubble.className = 'bubble';
-      var msg = document.createElement('p'); msg.className = 'msg'; msg.textContent = r.text;
-      bubble.appendChild(msg); body.appendChild(tag); body.appendChild(bubble);
-      chat.appendChild(av); chat.appendChild(body); card.appendChild(chat);
-      var row = document.createElement('div'); row.className = 'copy-row';
-      var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'btn btn-glass';
-      btn.innerHTML = COPY + '<span class="lbl">複製題目</span>';
-      btn.addEventListener('click', function () { copyQuestion(btn, r.text); });
-      row.appendChild(btn); card.appendChild(row);
+      // 標題區：代號徽章＋題組名稱＋分類標籤
+      var head = mk('div', 'q-head');
+      if (codeOf(r)) head.appendChild(mk('div', 'code-badge', codeOf(r)));
+      var ttl = mk('div', 'q-title');
+      ttl.appendChild(mk('h2', '', r.title || '')); ttl.appendChild(mk('span', 'tag', r.category));
+      head.appendChild(ttl); card.appendChild(head);
+
+      // 步驟區：寬螢幕三欄表格、手機直式卡片（同一份結構，靠 CSS 切換）
+      var steps = mk('div', 'steps'); steps.setAttribute('role', 'table'); steps.setAttribute('aria-label', '考試步驟');
+      var sh = mk('div', 'steps-head'); sh.setAttribute('role', 'row');
+      [['h-num', '步驟'], ['h-act', '考官操作'], ['h-pt', '考點']].forEach(function (h) {
+        var c = mk('div', h[0], h[1]); c.setAttribute('role', 'columnheader'); sh.appendChild(c);
+      });
+      steps.appendChild(sh);
+      var list = safeSteps(r);
+      list.forEach(function (s, k) {
+        var row = mk('div', 'step'); row.setAttribute('role', 'row');
+        var cn = mk('div', 'cell-num'); cn.setAttribute('role', 'cell'); cn.appendChild(mk('span', 'num', String(k + 1)));
+        var body = mk('div', 'cell-body');
+        var ca = mk('div', 'act', s.action); ca.setAttribute('role', 'cell');
+        var cp = mk('div', 'pt'); cp.setAttribute('role', 'cell');
+        cp.appendChild(mk('span', 'pt-label', '考點')); cp.appendChild(mk('span', 'pt-text', pointText(s.point)));
+        body.appendChild(ca); body.appendChild(cp);
+        row.appendChild(cn); row.appendChild(body); steps.appendChild(row);
+      });
+      card.appendChild(steps);
+
+      var crow = mk('div', 'copy-row');
+      var btn = mk('button', 'btn btn-glass'); btn.type = 'button';
+      btn.innerHTML = COPY + '<span class="lbl">複製題組</span>';
+      btn.addEventListener('click', function () { copyText(btn, groupText(r)); });
+      crow.appendChild(btn); card.appendChild(crow);
       box.appendChild(card);
     });
     if (rows.length) box.firstChild.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   }
 
-  /* ===== 複製（只複製客人訊息）：navigator.clipboard + execCommand 備援 ===== */
+  /* ===== 複製純文字：第一行題組標題，之後每步驟兩行 ===== */
+  function groupText(r) {
+    var lines = ['【題組' + (codeOf(r) ? ' ' + codeOf(r) : '') + '｜' + r.category + '】' + (r.title || '')];
+    safeSteps(r).forEach(function (s, k) {
+      lines.push((k + 1) + '. 考官操作：' + s.action);
+      lines.push('   考點：' + pointText(s.point));
+    });
+    return lines.join('\n');
+  }
   function copyFallback(text) {
     var ta = document.createElement('textarea');
     ta.value = text; ta.setAttribute('readonly', '');
@@ -418,9 +490,9 @@
     btn.classList.toggle('btn-done', ok);
     btn.querySelector('svg').outerHTML = ok ? CHECK : COPY;
     clearTimeout(btn._t);
-    btn._t = setTimeout(function () { lbl.textContent = '複製題目'; btn.classList.remove('btn-done'); btn.querySelector('svg').outerHTML = COPY; }, 2000);
+    btn._t = setTimeout(function () { lbl.textContent = '複製題組'; btn.classList.remove('btn-done'); btn.querySelector('svg').outerHTML = COPY; }, 2000);
   }
-  function copyQuestion(btn, text) {
+  function copyText(btn, text) {
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).then(function () { copyDone(btn, true); }, function () { copyDone(btn, copyFallback(text)); });
     } else copyDone(btn, copyFallback(text));
